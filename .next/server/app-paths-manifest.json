@@ -1,0 +1,16 @@
+{
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/api/nominas/periodos/route": "app/api/nominas/periodos/route.js",
+  "/api/maestros/barcos/route": "app/api/maestros/barcos/route.js",
+  "/api/maestros/barcos/[id]/route": "app/api/maestros/barcos/[id]/route.js",
+  "/api/facturas/route": "app/api/facturas/route.js",
+  "/api/facturas/[id]/route": "app/api/facturas/[id]/route.js",
+  "/api/maestros/puertos/route": "app/api/maestros/puertos/route.js",
+  "/api/maestros/proveedores/route": "app/api/maestros/proveedores/route.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/facturas/page": "app/(dashboard)/facturas/page.js",
+  "/(dashboard)/facturas/nueva/page": "app/(dashboard)/facturas/nueva/page.js",
+  "/(dashboard)/maestros/page": "app/(dashboard)/maestros/page.js"
+}

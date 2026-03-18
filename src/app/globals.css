@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 215 28% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+    --primary: 201 96% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 93%;
+    --secondary-foreground: 215 28% 17%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 197 90% 96%;
+    --accent-foreground: 201 96% 32%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 201 96% 32%;
+    --radius: 0.5rem;
+    --font-display: 'DM Sans', sans-serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-feature-settings: "kern" 1, "liga" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  code, kbd, pre {
+    font-family: 'DM Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Ocean gradient for hero areas */
+  .ocean-gradient {
+    background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 35%, #0ea5e9 100%);
+  }
+
+  /* Sidebar styles */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150;
+  }
+
+  .sidebar-item-active {
+    @apply bg-ocean-700 text-white;
+  }
+
+  .sidebar-item-inactive {
+    @apply text-ocean-100 hover:bg-ocean-700/50 hover:text-white;
+  }
+
+  /* Status badges */
+  .badge-borrador {
+    @apply bg-slate-100 text-slate-700 border border-slate-200;
+  }
+  .badge-validada {
+    @apply bg-blue-50 text-blue-700 border border-blue-200;
+  }
+  .badge-cerrada {
+    @apply bg-green-50 text-green-700 border border-green-200;
+  }
+  .badge-pagada {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+
+  /* Table */
+  .table-row-hover {
+    @apply hover:bg-ocean-50/50 transition-colors duration-100;
+  }
+
+  /* Shimmer loading */
+  .shimmer {
+    background: linear-gradient(90deg, #f0f4f8 25%, #e2eaf2 50%, #f0f4f8 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Warning box */
+  .warning-box {
+    @apply bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800;
+  }
+
+  /* Scrollbar */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+}
