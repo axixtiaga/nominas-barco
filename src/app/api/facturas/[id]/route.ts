@@ -41,9 +41,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { lines, ...invoiceData } = parsed.data;
 
-  const updated = await prisma.$transaction(async (tx: typeof prisma) => {
+  const updated = await prisma.$transaction// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (tx: any) => {
+
     await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
-    return (tx as typeof prisma).invoice.update({
+    return (return tx.invoice.update({
+```
+
+Guarda con `Ctrl+S`. Luego en la terminal:
+```
+git add src/app/api/facturas
+git commit -m "fix typescript transaction type"
+git push origin master
+
       where: { id },
       data: {
         ...invoiceData,
