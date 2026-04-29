@@ -1,0 +1,496 @@
+// Prisma schema — Capturas ITSAS LAGUNAK
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  VIEWER
+  MARINERO   // acceso restringido: solo ve sus propias mantas
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PARSED
+  DRAFT
+  VERIFIED
+  REJECTED
+  FAILED
+}
+
+enum DocumentKind {
+  CAPTURA
+  GASTO
+  OTHER
+}
+
+enum EquivalenceScope {
+  GLOBAL
+  PORT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(OPERATOR)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  auditLogs    AuditLog[]
+  documents    Document[] @relation("uploader")
+  sailor       Sailor?    @relation("SailorUser")  // si role=MARINERO, su ficha de Sailor
+}
+
+model Port {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  province  String?
+  country   String   @default("ES")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoices      Invoice[]
+  equivalences  SpeciesEquivalence[]
+  formats       DocumentFormat[]
+  expenses      Expense[]
+  taxRate       PortTaxRate?
+  nominaDays    NominaDay[]
+}
+
+// % de impuesto del puerto de descarga aplicado sobre el TOTAL_PESCA antes de calcular
+// el SUBTOTAL del montemayor. Una fila por puerto (relación 1:1).
+// Ejemplos: Ondarroa 3,00% · Santoña 2,50% · Lastres 4,50%.
+model PortTaxRate {
+  id        String   @id @default(cuid())
+  portId    String   @unique
+  rate      Decimal  @default(0) @db.Decimal(5, 2)   // 0.00 .. 99.99 (%)
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  port      Port     @relation(fields: [portId], references: [id], onDelete: Cascade)
+}
+
+// Marca de NÓMINA por (día, puerto). Una jornada de trabajo del barco en un puerto.
+// El usuario asigna manta y marca cobrado a este nivel (NO a nivel factura),
+// porque una factura puede contener varios días y un marinero puede no haber ido
+// a la mar todos esos días.
+model NominaDay {
+  id        String    @id @default(cuid())
+  date      DateTime  @db.Date
+  portId    String?
+  manta     String?
+  paid      Boolean   @default(false)
+  paidAt    DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  port      Port?     @relation(fields: [portId], references: [id])
+
+  @@unique([date, portId])
+  @@index([date])
+  @@index([manta])
+}
+
+// Información agregada de una manta (cabecera de nómina): permite validar/cerrar la
+// manta y guardar la fecha de validación, que se usa para filtrar por mes en el dashboard.
+model MantaInfo {
+  id           String    @id @default(cuid())
+  manta        String    @unique          // identificador (debe coincidir con NominaDay.manta)
+  validatedAt  DateTime?                  // si está validada, fecha del cierre (usada para filtros mensuales)
+  validatedBy  String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([validatedAt])
+}
+
+// Gasto manual asignado a una manta (sin pasar por una factura PDF).
+// Caso típico: HIELO_PRODUCIDO calculado con horas × kg/hora × €/Tn.
+// También sirve para añadir cualquier gasto puntual a una manta.
+model MantaManualGasto {
+  id          String          @id @default(cuid())
+  manta       String                                          // identificador de manta (1, 2, "1-1", etc.)
+  category    ExpenseCategory @default(OTRO)
+  description String                                          // texto libre
+  hours       Decimal?        @db.Decimal(8, 2)               // p.ej. 10,00
+  kgPerHour   Decimal?        @db.Decimal(8, 2)               // p.ej. 290,00
+  pricePerTn  Decimal?        @db.Decimal(10, 4)              // p.ej. 0,05 €/Tn
+  amount      Decimal         @default(0) @db.Decimal(14, 2)  // calculado o introducido a mano
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([manta])
+}
+
+// Roles típicos de la tripulación
+enum SailorRole {
+  PATRON          // patrón
+  MOTORISTA       // motorista
+  CONTRAMAESTRE   // contramaestre / segundo patrón
+  MARINERO        // marinero raso
+  GRUMETE         // grumete
+  ARMADOR         // armador (solo recibe parte, no necesariamente embarca)
+  OTRO
+}
+
+// Marinero / armador con su número de partes y % de IRPF.
+// Se usa en la confección de la nómina (manta) para calcular cuánto cobra cada uno.
+model Sailor {
+  id              String     @id @default(cuid())
+  dni             String?    @unique                            // DNI / NIE (puede ser nulo para armadores sin embarcación)
+  name            String
+  role            SailorRole @default(MARINERO)
+  cotizacionType  String?                                        // "TECNICO", "MARINERO", etc. — categoría de cotización SS
+  parts           Decimal    @default(1) @db.Decimal(5, 2)       // p.ej. 1.00, 1.22, 1.56
+  irpfRate        Decimal    @default(15) @db.Decimal(5, 2)      // % IRPF (15-25% normal, 0% armadores)
+  ssRateLow       Decimal    @default(3.5) @db.Decimal(5, 2)     // % SS bajo (parte tripulación, informativo)
+  ssRateHigh      Decimal    @default(4)   @db.Decimal(5, 2)     // % SS alto (informativo)
+  active          Boolean    @default(true)
+  joinedAt        DateTime?
+  leftAt          DateTime?
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  // Cuenta de usuario asociada (acceso restringido a sus propias nóminas).
+  // Opcional: el armador decide a qué marineros les abre acceso.
+  userId          String?    @unique
+  user            User?      @relation("SailorUser", fields: [userId], references: [id])
+  // Email REAL del marinero (Gmail, Yahoo, Outlook personal…) — para enviarle por
+  // correo el PDF de su nómina. Distinto del email de login (que suele ser un
+  // alias @itsaslagunak.local generado automáticamente).
+  contactEmail    String?
+  // Pagos mensuales de Seguridad Social (uno por mes)
+  ssPayments      SsPayment[]
+
+  @@index([active])
+  @@index([role])
+  @@index([userId])
+}
+
+model Boat {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String   @unique
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  invoices   Invoice[]
+}
+
+model Supplier {
+  id         String   @id @default(cuid())
+  taxId      String?  @unique
+  name       String
+  address    String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  invoices   Invoice[]
+  expenses   Expense[]
+
+  @@index([name])
+}
+
+model Species {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  commonName     String
+  scientificName String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  equivalences   SpeciesEquivalence[]
+  lines          InvoiceLine[]
+}
+
+model SpeciesEquivalence {
+  id         String           @id @default(cuid())
+  rawName    String
+  scope      EquivalenceScope @default(GLOBAL)
+  portId     String?
+  speciesId  String
+  notes      String?
+  active     Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  port       Port?    @relation(fields: [portId], references: [id])
+  species    Species  @relation(fields: [speciesId], references: [id])
+
+  @@unique([rawName, portId])
+  @@index([rawName])
+}
+
+model DocumentFormat {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  portId      String?
+  parserKey   String
+  description String?
+  active      Boolean  @default(true)
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  port        Port?    @relation(fields: [portId], references: [id])
+  documents   Document[]
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  filename     String
+  storagePath  String
+  originalPath String?
+  archivedPath String?
+  mime         String         @default("application/pdf")
+  sha256       String         @unique
+  sizeBytes    Int
+  kind         DocumentKind   @default(CAPTURA)
+  status       DocumentStatus @default(UPLOADED)
+  formatId     String?
+  uploaderId   String?
+  rawText      String?
+  rawParsed    Json?
+  parseError   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  format       DocumentFormat? @relation(fields: [formatId], references: [id])
+  uploader     User?           @relation("uploader", fields: [uploaderId], references: [id])
+  invoice      Invoice?
+  expense      Expense?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Invoice {
+  id             String         @id @default(cuid())
+  documentId     String         @unique
+  invoiceNumber  String?
+  issueDate      DateTime?
+  portId         String?
+  boatId         String?
+  supplierId     String?
+  currency       String         @default("EUR")
+  kind           DocumentKind   @default(CAPTURA)
+  subtotal       Decimal        @default(0) @db.Decimal(14, 2)
+  taxes          Decimal        @default(0) @db.Decimal(14, 2)
+  fees           Decimal        @default(0) @db.Decimal(14, 2)
+  other          Decimal        @default(0) @db.Decimal(14, 2)
+  total          Decimal        @default(0) @db.Decimal(14, 2)
+  notes          String?
+  status         DocumentStatus @default(DRAFT)
+  verifiedAt     DateTime?
+  verifiedById   String?
+  // Campos de NÓMINA (Fase 5): permiten agrupar capturas en una "manta" (cada nómina
+  // tiene un identificador) y marcar si esa descarga ya se ha cobrado al armador/marineros.
+  manta          String?         // p.ej. "1", "2", "1-1" — texto libre
+  paid           Boolean         @default(false)   // true = cobrado, false = pendiente
+  paidAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  document       Document       @relation(fields: [documentId], references: [id])
+  port           Port?          @relation(fields: [portId], references: [id])
+  boat           Boat?          @relation(fields: [boatId], references: [id])
+  supplier       Supplier?      @relation(fields: [supplierId], references: [id])
+  lines          InvoiceLine[]
+  expenses       Expense[]      @relation("ExpenseToInvoice")
+  expenseLines   ExpenseLine[]  @relation("ExpenseLineToInvoice")
+
+  @@index([issueDate])
+  @@index([portId])
+  @@index([boatId])
+  @@index([supplierId])
+}
+
+model InvoiceLine {
+  id              String    @id @default(cuid())
+  invoiceId       String
+  lineNo          Int
+  lineDate        DateTime?
+  rawSpeciesName  String
+  speciesId       String?
+  description     String?
+  kilos           Decimal   @default(0) @db.Decimal(14, 3)
+  pricePerKg      Decimal   @default(0) @db.Decimal(14, 4)
+  amount          Decimal   @default(0) @db.Decimal(14, 2)
+  vatRate         Decimal   @default(0) @db.Decimal(5, 2)
+  vatAmount       Decimal   @default(0) @db.Decimal(14, 2)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  invoice         Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  species         Species?  @relation(fields: [speciesId], references: [id])
+
+  @@index([invoiceId])
+  @@index([speciesId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  entity     String
+  entityId   String
+  action     String
+  field      String?
+  oldValue   Json?
+  newValue   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+
+enum ExpenseCategory {
+  // Categorías clásicas (compatibilidad)
+  COFRADIA          // gastos cofradía (kofradia, federación, opegui, cuotas)
+  COMBUSTIBLE       // gasoil, gasolina
+  HIELO             // hielo del barco (compra)
+  VIVERES           // víveres genéricos
+  TELEFONIA         // teléfono
+  TRANSPORTE        // autobús, taxi, etc.
+  MANTENIMIENTO    // mantenimiento general / reparaciones
+  // Categorías específicas alineadas con el formato del manta Excel
+  HIELO_PRODUCIDO   // hielo PRODUCIDO (no comprado): calculado por horas × kg/hora × €/Tn
+  CAJAS             // cajas (de plástico, etc.)
+  PALETS            // palets
+  APAREJOS          // aparejos, redes, latiguillos
+  PAN               // pan
+  AGUA              // agua y bebidas
+  CARNE             // carne, carnicería
+  MOVISTAR          // movistar / telefonía móvil
+  OTRO              // sin categoría
+}
+
+model Expense {
+  id             String          @id @default(cuid())
+  documentId     String          @unique
+  expenseNumber  String?         // nº de factura del proveedor
+  issueDate      DateTime?       // fecha de la factura
+  serviceDate    DateTime?       // fecha del servicio/gasto (si distinta de la de emisión)
+  supplierId     String?
+  portId         String?         // si el gasto es de un puerto, vincúlalo
+  invoiceId      String?         // si el gasto se asocia a una captura concreta del mismo día/puerto
+  manta          String?         // si se asigna manualmente a una manta concreta (sobrescribe la heurística por día/puerto)
+  concept        String?         // descripción editable
+  category       ExpenseCategory @default(OTRO)
+  baseAmount     Decimal         @default(0) @db.Decimal(14, 2)
+  vatRate        Decimal         @default(0) @db.Decimal(5, 2)
+  vatAmount      Decimal         @default(0) @db.Decimal(14, 2)
+  totalAmount    Decimal         @default(0) @db.Decimal(14, 2)
+  currency       String          @default("EUR")
+  notes          String?
+  status         DocumentStatus  @default(DRAFT)
+  verifiedAt     DateTime?
+  verifiedById   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  document       Document        @relation(fields: [documentId], references: [id])
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
+  port           Port?           @relation(fields: [portId], references: [id])
+  invoice        Invoice?        @relation("ExpenseToInvoice", fields: [invoiceId], references: [id])
+  lines          ExpenseLine[]
+
+  @@index([issueDate])
+  @@index([serviceDate])
+  @@index([supplierId])
+  @@index([portId])
+  @@index([invoiceId])
+  @@index([status])
+}
+
+model ExpenseLine {
+  id                  String    @id @default(cuid())
+  expenseId           String
+  lineNo              Int
+  lineDate            DateTime?    // fecha del albarán/concepto si se infiere del PDF
+  conceptCode         String?      // código del concepto (ej. "99.010", "20", "25")
+  description         String       // texto libre / nombre del concepto
+  reference           String?      // referencia cruzada (ej. "B26-964") al albarán/captura origen
+  quantity            Decimal   @default(0) @db.Decimal(14, 3)
+  unitPrice           Decimal   @default(0) @db.Decimal(14, 4)
+  amount              Decimal   @default(0) @db.Decimal(14, 2)
+  includeInMontemayor Boolean   @default(true)   // si false, no se descuenta del montemayor
+  linkedInvoiceId     String?      // si la línea se asocia a una captura concreta
+  manta               String?      // si se asigna manualmente a una manta concreta (sobrescribe la heurística)
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  expense             Expense   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  linkedInvoice       Invoice?  @relation("ExpenseLineToInvoice", fields: [linkedInvoiceId], references: [id])
+
+  @@index([expenseId])
+  @@index([linkedInvoiceId])
+  @@index([lineDate])
+}
+
+// Mapeo "texto en factura/proveedor → concepto + categoría".
+// Permite que el usuario defina, por ejemplo:
+//   - "URANZU" (en proveedor) → concepto "URANZU", categoría VIVERES
+//   - "SUMIPESCA"             → concepto "Agua",   categoría AGUA
+//   - "MOVISTAR"              → concepto "Movistar", categoría MOVISTAR
+//   - "AUTOBUS" (en descripción) → concepto "Autobús", categoría TRANSPORTE
+//
+// Cuando llega una factura/gasto, se busca la primera regla cuyo `matchText`
+// (case-insensitive) aparezca en el campo indicado por `matchField`. La regla
+// con `priority` más alto gana en caso de empate.
+model ExpenseConcept {
+  id          String          @id @default(cuid())
+  matchText   String                                          // texto a buscar (sin sensibilidad a mayúsculas)
+  matchField  ExpenseMatchField @default(SUPPLIER)            // dónde buscar el texto
+  concept     String                                          // texto del concepto a usar como descripción
+  category    ExpenseCategory @default(OTRO)                  // categoría asociada
+  priority    Int             @default(100)                   // mayor = aplica antes
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([matchText, matchField])
+  @@index([matchField])
+  @@index([priority])
+}
+
+enum ExpenseMatchField {
+  SUPPLIER       // busca en el proveedor de la factura
+  DESCRIPTION    // busca en la descripción de la línea
+  ANY            // busca en proveedor O descripción
+}
+
+// Pago mensual de Seguridad Social por marinero, importado del Excel que el usuario
+// deja cada mes en C:\Users\User\Dropbox\Itsas Lagunak\Cuentas 2026\Seguridad Social.
+// La columna O del documento es el dato principal: "amount" (lo que la empresa paga
+// + retiene por ese marinero ese mes). Permite comparar mensualmente lo retenido vía
+// mantas (3.5% / 4%) con lo realmente pagado a la Seguridad Social.
+model SsPayment {
+  id            String   @id @default(cuid())
+  sailorId      String
+  sailorNameRaw String                                           // nombre tal como vino en el Excel (trazabilidad)
+  sailorDniRaw  String?                                          // DNI tal como vino en el Excel (matcheo)
+  month         String                                           // YYYY-MM (mes al que corresponde el pago)
+  amount        Decimal  @db.Decimal(14, 2)                      // columna O: importe principal
+  totalCost     Decimal? @db.Decimal(14, 2)                      // total empresa (opcional, si el Excel lo trae)
+  employerPart  Decimal? @db.Decimal(14, 2)                      // parte que paga la empresa (opcional)
+  employeePart  Decimal? @db.Decimal(14, 2)                      // parte retenida al marinero (opcional)
+  notes         String?
+  sourceFile    String?                                          // nombre del fichero original
+  importedAt    DateTime @default(now())
+  importedBy    String?
+  sailor        Sailor   @relation(fields: [sailorId], references: [id], onDelete: Cascade)
+
+  @@unique([sailorId, month])
+  @@index([month])
+  @@index([sailorId])
+}

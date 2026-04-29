@@ -1,0 +1,61 @@
+# ──────────────────────────────────────────────────────────────
+# Itsas Lagunak Capturas — fichero .gitignore
+# Lo que aparezca aquí NO se sube a GitHub. CRÍTICO para no
+# exponer contraseñas ni datos personales.
+# ──────────────────────────────────────────────────────────────
+
+# ── SECRETOS Y CREDENCIALES (NUNCA SUBIR) ──
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+*.pem
+*.key
+
+# ── DEPENDENCIAS DE NODE (se instalan con npm install) ──
+node_modules
+.pnp
+.pnp.js
+
+# ── COMPILACIÓN DE NEXT.JS ──
+.next
+out
+build
+dist
+
+# ── LOGS Y FICHEROS DE EJECUCIÓN ──
+*.log
+backups.log
+.watch-state.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── PRISMA ──
+node_modules/.prisma
+
+# ── EDITORES E IDEs ──
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── NEXT.JS / VERCEL ──
+.vercel
+.turbo
+next-env.d.ts
+
+# ── TESTS ──
+coverage
+.nyc_output
+
+# ── ARCHIVOS DE DATOS LOCALES (NO son código) ──
+storage/
+uploads/
+backups/
+*.dump
+*.sqlite
+*.db

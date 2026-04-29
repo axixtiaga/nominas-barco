@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { height: 100%; }
+body { background: #f8fafc; color: #0f172a; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+.btn { @apply inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium; }
+.btn-primary { @apply btn bg-blue-600 text-white hover:bg-blue-700; }
+.btn-ghost { @apply btn bg-white border border-slate-300 hover:bg-slate-50; }
+.btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+.input { @apply w-full px-3 py-2 rounded-md border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500; }
+.label { @apply block text-xs font-medium text-slate-600 mb-1; }
+.card { @apply bg-white border border-slate-200 rounded-lg p-4 shadow-sm; }
+.table { @apply w-full text-sm; }
+/* Base de th sin alineación fija — así text-left/text-center/text-right en
+   cada th individual funciona sin necesidad de !important. */
+.table th { @apply text-xs uppercase tracking-wider text-slate-500 font-medium px-3 py-2 bg-slate-50 text-left; }
+.table th.text-center { text-align: center; }
+.table th.text-right { text-align: right; }
+.table td { @apply px-3 py-2 border-t border-slate-100; }
+.table td.text-center { text-align: center; }
+.table td.text-right { text-align: right; }
+.badge { @apply inline-block px-2 py-0.5 text-xs rounded-full border; }
+.badge-draft { @apply badge bg-amber-50 text-amber-700 border-amber-200; }
+.badge-verified { @apply badge bg-emerald-50 text-emerald-700 border-emerald-200; }
+.badge-failed { @apply badge bg-rose-50 text-rose-700 border-rose-200; }
+.badge-parsed { @apply badge bg-sky-50 text-sky-700 border-sky-200; }
