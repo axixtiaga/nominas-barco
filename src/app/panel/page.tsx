@@ -258,8 +258,8 @@ function SimpleTable({ rows, cols }: { rows: any[]; cols: { k: string; l: string
     : rows;
 
   const thCls = (c: { right?: boolean }) =>
-    `cursor-pointer select-none hover:text-blue-700 ${c.right ? "text-center" : ""}`;
-  const tdCls = (c: { right?: boolean }) => c.right ? "text-center tabular-nums" : "";
+    `cursor-pointer select-none hover:text-blue-700 whitespace-nowrap ${c.right ? "text-center" : ""}`;
+  const tdCls = (c: { right?: boolean }) => `whitespace-nowrap ${c.right ? "text-center tabular-nums" : ""}`;
 
   function onHeaderClick(e: React.MouseEvent, key: string) {
     // Evitar que el clic se propague al <Link> envolvente (PanelLink).
@@ -279,6 +279,7 @@ function SimpleTable({ rows, cols }: { rows: any[]; cols: { k: string; l: string
   }
 
   return (
+    <div className="overflow-x-auto">
     <table className="table">
       <thead>
         <tr>
@@ -302,6 +303,7 @@ function SimpleTable({ rows, cols }: { rows: any[]; cols: { k: string; l: string
         ))}</tr>
       ))}</tbody>
     </table>
+    </div>
   );
 }
 
