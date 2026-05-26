@@ -9,6 +9,7 @@ import { audit } from "../audit";
 import { mastersRepo } from "../repositories/masters";
 import { resolveExpenseParser } from "../expense-parsers";
 import { applyExpenseConceptRules } from "./apply-expense-concepts";
+import { classifyKind } from "./classify-kind";
 import { DocumentKind, DocumentStatus } from "@prisma/client";
 
 const STORAGE_ROOT = path.resolve(process.cwd(), "storage");
@@ -19,8 +20,12 @@ export async function importPdf(params: {
   uploaderId?: string | null;
   /** Pista opcional del puerto (ej. nombre de la subcarpeta del watcher). Solo aplica a CAPTURA. */
   portHint?: string | null;
-  /** Tipo de documento: CAPTURA (parsea factura de pesca) o GASTO (parsea factura de gastos). */
+  /** Tipo de documento: CAPTURA (parsea factura de pesca) o GASTO (parsea factura de gastos).
+   *  Si autoDetectKind=true, este valor pasa a ser solo una PISTA por defecto. */
   kind?: "CAPTURA" | "GASTO";
+  /** Si es true, se ignora la carpeta y se decide CAPTURA/GASTO según el CONTENIDO del PDF.
+   *  Solo si el clasificador no está seguro (UNKNOWN) se respeta `kind` como fallback. */
+  autoDetectKind?: boolean;
   /** Origen del documento: upload, watcher, reparse... (informativo). */
   source?: string;
   /** Ruta completa del archivo en su ubicación original (Dropbox); la usa
@@ -28,7 +33,8 @@ export async function importPdf(params: {
   originalPath?: string | null;
 }) {
   const { filename, buffer, portHint, source, originalPath } = params;
-  const kind: DocumentKind = (params.kind ?? "CAPTURA") as DocumentKind;
+  let kind: DocumentKind = (params.kind ?? "CAPTURA") as DocumentKind;
+  const folderHintKind = kind;   // lo que sugería la carpeta de origen
   const sha256 = crypto.createHash("sha256").update(buffer).digest("hex");
 
   let uploaderId: string | null = null;
@@ -50,6 +56,20 @@ export async function importPdf(params: {
     rawText = await extractPdfText(buffer);
   } catch (e) {
     parseError = e instanceof Error ? e.message : String(e);
+  }
+
+  // ── Auto-clasificación CAPTURA/GASTO por contenido ──────────────────────
+  // Si se solicita, miramos el contenido del PDF para decidir el tipo, en lugar
+  // de fiarnos solo de la carpeta de origen. Si el clasificador no está seguro
+  // (UNKNOWN), respetamos la pista de la carpeta.
+  let kindClassification: Awaited<ReturnType<typeof classifyKind>> | null = null;
+  if (params.autoDetectKind && rawText) {
+    try {
+      kindClassification = await classifyKind(rawText);
+      if (kindClassification.kind !== "UNKNOWN") {
+        kind = kindClassification.kind as DocumentKind;
+      }
+    } catch { /* si falla la clasificación, seguimos con la pista de la carpeta */ }
   }
 
   // Para CAPTURA, intenta parsear con los parsers de capturas.
@@ -86,7 +106,16 @@ export async function importPdf(params: {
       status: parsed ? DocumentStatus.PARSED : (kind === "GASTO" ? DocumentStatus.DRAFT : DocumentStatus.FAILED)
     }
   });
-  await audit({ userId: uploaderId, entity: "Document", entityId: document.id, action: "UPLOAD", newValue: { filename, sha256, kind, formatId, source: source ?? "upload", portHint: portHint ?? null } });
+  await audit({ userId: uploaderId, entity: "Document", entityId: document.id, action: "UPLOAD", newValue: {
+    filename, sha256, kind, formatId, source: source ?? "upload", portHint: portHint ?? null,
+    autoClassified: kindClassification ? {
+      detected: kindClassification.kind,
+      confidence: kindClassification.confidence,
+      reason: kindClassification.reason,
+      folderHint: folderHintKind,
+      overrodeFolder: kindClassification.kind !== "UNKNOWN" && kindClassification.kind !== folderHintKind
+    } : null
+  } });
 
   // Si hay parser y es captura, materializa la Invoice + lines.
   if (parsed && kind === "CAPTURA") {

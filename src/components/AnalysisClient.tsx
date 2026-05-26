@@ -10,6 +10,7 @@ const DIM_META: Record<string, { title: string; subtitle: string; primaryKey: st
   port:     { title: "Análisis por puerto",         subtitle: "Distribución por puerto", primaryKey: "portName",   label: "Puerto" },
   supplier: { title: "Análisis por proveedor",      subtitle: "Distribución por cofradía", primaryKey: "name",     label: "Proveedor" },
   daily:    { title: "Capturas por día",            subtitle: "Evolución diaria",        primaryKey: "day",        label: "Día" },
+  weekly:   { title: "Capturas por semana",         subtitle: "Evolución semanal (lunes-domingo)", primaryKey: "label", label: "Semana" },
   monthly:  { title: "Capturas por mes",            subtitle: "Evolución mensual",       primaryKey: "month",      label: "Mes" }
 };
 
@@ -100,12 +101,12 @@ export function AnalysisClient({ dim, ports, species }: {
         {/* Chart primario: barras */}
         <div className="card">
           <h2 className="font-semibold mb-3">
-            {dim === "daily" || dim === "monthly" ? "Kilos e importe por periodo" : `Top 10 por importe · ${meta.label}`}
+            {dim === "daily" || dim === "weekly" || dim === "monthly" ? "Kilos e importe por periodo" : `Top 10 por importe · ${meta.label}`}
           </h2>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
-              {dim === "daily" || dim === "monthly" ? (
-                <LineChart data={[...rows].reverse()}>
+              {dim === "daily" || dim === "weekly" || dim === "monthly" ? (
+                <LineChart data={dim === "daily" ? [...rows].reverse() : rows}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey={meta.primaryKey} />
                   <YAxis yAxisId="left" />
@@ -161,11 +162,13 @@ export function AnalysisClient({ dim, ports, species }: {
               <tr>
                 <th>{meta.label}</th>
                 {(dim === "daily") && <th>Puerto</th>}
+                {(dim === "weekly") && <th>Periodo</th>}
                 <th className="text-center">Kilos</th>
                 <th className="text-center">Importe</th>
                 {(dim === "species" || dim === "port" || dim === "supplier") && <th className="text-center">Facturas</th>}
                 {dim === "species" && <th className="text-center">€/Kg medio</th>}
                 {dim === "monthly" && <th className="text-center">Facturas</th>}
+                {dim === "weekly" && <th className="text-center">Facturas</th>}
               </tr>
             </thead>
             <tbody>
@@ -173,11 +176,13 @@ export function AnalysisClient({ dim, ports, species }: {
                 <tr key={i}>
                   <td>{r[meta.primaryKey] ?? "—"}</td>
                   {dim === "daily" && <td>{r.portName ?? "—"}</td>}
+                  {dim === "weekly" && <td className="text-slate-600">{r.weekStart} – {r.weekEnd}</td>}
                   <td className="text-center tabular-nums">{fmtKg(r.kilos)}</td>
                   <td className="text-center tabular-nums">{fmtEur(r.amount)}</td>
                   {(dim === "species" || dim === "port" || dim === "supplier") && <td className="text-center tabular-nums">{r.invoices ?? "—"}</td>}
                   {dim === "species" && <td className="text-center tabular-nums">{fmtNum(r.avgPrice, 3)}</td>}
                   {dim === "monthly" && <td className="text-center tabular-nums">{r.invoices ?? "—"}</td>}
+                  {dim === "weekly" && <td className="text-center tabular-nums">{r.invoices ?? "—"}</td>}
                 </tr>
               ))}
               {!rows.length && <tr><td colSpan={6} className="text-center py-6 text-slate-500">Sin datos con esos filtros</td></tr>}

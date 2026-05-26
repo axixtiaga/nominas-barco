@@ -46,6 +46,67 @@ export default function MantaConfeccionPage() {
   const [manualGastos, setManualGastos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+
+  // Edición inline de un gasto manual existente. Cuando editingManualId está
+  // definido, ese row se renderiza con inputs en lugar de celdas de solo lectura.
+  const [editingManualId, setEditingManualId] = useState<string | null>(null);
+  const [editManualDraft, setEditManualDraft] = useState<{
+    category: string; description: string;
+    hours: string; kgPerHour: string; pricePerTn: string; amount: string;
+  } | null>(null);
+  const [savingManualEdit, setSavingManualEdit] = useState(false);
+
+  function startEditManual(g: any) {
+    setEditingManualId(g.id);
+    setEditManualDraft({
+      category: g.category ?? "OTRO",
+      description: g.description ?? "",
+      hours: g.hours != null ? String(g.hours).replace(".", ",") : "",
+      kgPerHour: g.kgPerHour != null ? String(g.kgPerHour).replace(".", ",") : "",
+      pricePerTn: g.pricePerTn != null ? String(g.pricePerTn).replace(".", ",") : "",
+      amount: g.amount != null ? String(g.amount).replace(".", ",") : ""
+    });
+  }
+  function cancelEditManual() {
+    setEditingManualId(null);
+    setEditManualDraft(null);
+  }
+  async function saveEditManual(id: string) {
+    if (!editManualDraft) return;
+    const d = editManualDraft;
+    setSavingManualEdit(true);
+    try {
+      const body: any = {
+        category: d.category,
+        description: d.description.trim() || "Gasto manual"
+      };
+      const h = d.hours ? parseFloat(d.hours.replace(",", ".")) : null;
+      const k = d.kgPerHour ? parseFloat(d.kgPerHour.replace(",", ".")) : null;
+      const p = d.pricePerTn ? parseFloat(d.pricePerTn.replace(",", ".")) : null;
+      const a = d.amount ? parseFloat(d.amount.replace(",", ".")) : null;
+      body.hours = h;
+      body.kgPerHour = k;
+      body.pricePerTn = p;
+      if (a != null && !(h && k && p)) body.amount = a;
+
+      const r = await fetch(`/api/nominas/manta/${encodeURIComponent(mantaId)}/manual-gastos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json();
+      if (!r.ok) { alert(j?.error ?? "Error guardando"); return; }
+      cancelEditManual();
+      // Refrescar lista
+      const list = await fetch(`/api/nominas/manta/${encodeURIComponent(mantaId)}/manual-gastos`);
+      const listJ = await list.json();
+      setManualGastos(Array.isArray(listJ?.data) ? listJ.data : []);
+      // Refrescar la manta entera (para recalcular importes)
+      refresh();
+    } finally {
+      setSavingManualEdit(false);
+    }
+  }
   // Audiencia para impresión: "armadores" muestra todo, "marineros" oculta
   // las filas de ARMADOR y PATRON. Solo afecta a la vista en el navegador
   // mientras dura la impresión.
@@ -259,6 +320,84 @@ export default function MantaConfeccionPage() {
             </thead>
             <tbody>
               {manualGastos.map(g => {
+                const isEditing = editingManualId === g.id;
+                if (isEditing && editManualDraft) {
+                  // Cálculo en vivo del importe si tiene horas/kg/precio
+                  const h = parseFloat(editManualDraft.hours.replace(",", ".")) || 0;
+                  const k = parseFloat(editManualDraft.kgPerHour.replace(",", ".")) || 0;
+                  const p = parseFloat(editManualDraft.pricePerTn.replace(",", ".")) || 0;
+                  const livePreviewAmount = (h && k && p) ? Math.round(h * k * p * 100) / 100 : null;
+                  const livePreviewKg = (h && k) ? h * k : null;
+                  return (
+                    <tr key={g.id} className="bg-amber-50">
+                      <td>
+                        <select
+                          className="input text-xs"
+                          value={editManualDraft.category}
+                          onChange={e => setEditManualDraft({ ...editManualDraft, category: e.target.value })}
+                        >
+                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="input text-sm"
+                          value={editManualDraft.description}
+                          onChange={e => setEditManualDraft({ ...editManualDraft, description: e.target.value })}
+                          placeholder="Descripción"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input text-right text-xs tabular-nums"
+                          value={editManualDraft.hours}
+                          onChange={e => setEditManualDraft({ ...editManualDraft, hours: e.target.value })}
+                          placeholder="—"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input text-right text-xs tabular-nums"
+                          value={editManualDraft.kgPerHour}
+                          onChange={e => setEditManualDraft({ ...editManualDraft, kgPerHour: e.target.value })}
+                          placeholder="—"
+                        />
+                      </td>
+                      <td className="text-right tabular-nums text-xs text-slate-500">
+                        {livePreviewKg != null ? livePreviewKg.toLocaleString("es-ES", { maximumFractionDigits: 0 }) : "—"}
+                      </td>
+                      <td>
+                        <input
+                          className="input text-right text-xs tabular-nums"
+                          value={editManualDraft.pricePerTn}
+                          onChange={e => setEditManualDraft({ ...editManualDraft, pricePerTn: e.target.value })}
+                          placeholder="—"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input text-right text-xs tabular-nums font-medium"
+                          value={livePreviewAmount != null ? String(livePreviewAmount).replace(".", ",") : editManualDraft.amount}
+                          onChange={e => setEditManualDraft({ ...editManualDraft, amount: e.target.value })}
+                          placeholder="0,00"
+                          disabled={livePreviewAmount != null}
+                          title={livePreviewAmount != null ? "Calculado automáticamente desde horas × kg/h × €/Tn" : ""}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <button
+                          className="text-xs text-emerald-700 hover:underline mr-2 font-semibold"
+                          onClick={() => saveEditManual(g.id)}
+                          disabled={savingManualEdit}
+                        >{savingManualEdit ? "..." : "💾 Guardar"}</button>
+                        <button
+                          className="text-xs text-slate-500 hover:underline"
+                          onClick={cancelEditManual}
+                        >Cancelar</button>
+                      </td>
+                    </tr>
+                  );
+                }
                 const kg = (g.hours && g.kgPerHour) ? Number(g.hours) * Number(g.kgPerHour) : null;
                 return (
                   <tr key={g.id}>
@@ -269,7 +408,10 @@ export default function MantaConfeccionPage() {
                     <td className="text-right tabular-nums">{kg != null ? kg.toLocaleString("es-ES", { maximumFractionDigits: 0 }) : "—"}</td>
                     <td className="text-right tabular-nums">{g.pricePerTn != null ? Number(g.pricePerTn).toFixed(4).replace(".", ",") : "—"}</td>
                     <td className="text-right tabular-nums font-medium">{fmtEur(g.amount)}</td>
-                    <td><button className="text-xs text-rose-600 hover:underline" onClick={() => deleteManual(g.id)}>Borrar</button></td>
+                    <td className="whitespace-nowrap">
+                      <button className="text-xs text-blue-600 hover:underline mr-2" onClick={() => startEditManual(g)}>✏️ Editar</button>
+                      <button className="text-xs text-rose-600 hover:underline" onClick={() => deleteManual(g.id)}>Borrar</button>
+                    </td>
                   </tr>
                 );
               })}
@@ -406,6 +548,7 @@ export default function MantaConfeccionPage() {
                 <th className="text-right">% IRPF</th>
                 <th className="text-right">IRPF</th>
                 <th className="text-right">Líquido a percibir</th>
+                <th className="print:hidden"></th>
               </tr>
             </thead>
             <tbody>
@@ -418,6 +561,14 @@ export default function MantaConfeccionPage() {
                   <td className="text-right tabular-nums text-slate-500">{m.irpfRate.toFixed(2).replace(".", ",")}%</td>
                   <td className="text-right tabular-nums">−{fmtEur(m.irpfImporte)}</td>
                   <td className="text-right tabular-nums font-bold text-emerald-700">{fmtEur(m.liquidoAPercibir)}</td>
+                  <td className="text-right print:hidden">
+                    <button
+                      type="button"
+                      className="text-xs text-rose-600 hover:underline whitespace-nowrap"
+                      onClick={() => excludeSailor(mantaId, m.sailorId, m.name, refresh)}
+                      title="Excluir a este marinero del reparto de esta manta"
+                    >❌ Excluir</button>
+                  </td>
                 </tr>
               ))}
               <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
@@ -427,6 +578,7 @@ export default function MantaConfeccionPage() {
                 <td></td>
                 <td className="text-right tabular-nums">−{fmtEur(sumIrpf)}</td>
                 <td className="text-right tabular-nums text-emerald-700">{fmtEur(sumLiquido)}</td>
+                <td className="print:hidden"></td>
               </tr>
             </tbody>
           </table>
@@ -435,6 +587,36 @@ export default function MantaConfeccionPage() {
           <p className="text-sm text-slate-500 italic">
             Sin marineros activos. Añade marineros desde la sección <Link className="text-blue-600 underline" href="/sailors">Marineros</Link> para que el reparto se calcule.
           </p>
+        )}
+
+        {/* Sección de excluidos: aparece solo si hay alguno */}
+        {Array.isArray(data.excluded) && data.excluded.length > 0 && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded print:hidden">
+            <div className="text-xs font-semibold text-amber-900 mb-2">
+              ⚠️ Marineros excluidos de esta manta ({data.excluded.length})
+            </div>
+            <table className="text-xs w-full">
+              <tbody>
+                {data.excluded.map((e: any) => (
+                  <tr key={e.sailorId} className="border-b border-amber-100 last:border-0">
+                    <td className="py-1 line-through text-slate-500">{e.name}</td>
+                    <td className="py-1 text-slate-500">{e.role}</td>
+                    <td className="py-1 text-slate-500 italic">{e.reason ?? "Sin motivo"}</td>
+                    <td className="py-1 text-right">
+                      <button
+                        type="button"
+                        className="text-xs text-emerald-700 hover:underline"
+                        onClick={() => reincludeSailor(mantaId, e.sailorId, e.name, refresh)}
+                      >✓ Volver a incluir</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="text-[10px] text-amber-700 mt-2 italic">
+              Las partes de los excluidos no cuentan en el reparto: el €/parte se ha repartido entre los demás.
+            </div>
+          </div>
         )}
       </Section>
 
@@ -646,6 +828,29 @@ async function sendPersonalPdfsByEmail(
   }
 }
 
+/** Excluye a un marinero del reparto de esta manta (pide motivo opcional). */
+async function excludeSailor(manta: string, sailorId: string, sailorName: string, refresh: () => void) {
+  const reason = prompt(`¿Excluir a "${sailorName}" del reparto de esta manta?\n\nMotivo (opcional, ej. "baja médica", "vacaciones"):`);
+  if (reason === null) return;   // cancelado
+  const r = await fetch(`/api/nominas/manta/${encodeURIComponent(manta)}/exclusions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sailorId, reason: reason.trim() || null })
+  });
+  const j = await r.json();
+  if (!r.ok) { alert(j?.error ?? "Error al excluir"); return; }
+  refresh();
+}
+
+/** Quita la exclusión: el marinero vuelve a participar en el reparto. */
+async function reincludeSailor(manta: string, sailorId: string, sailorName: string, refresh: () => void) {
+  if (!confirm(`¿Volver a incluir a "${sailorName}" en el reparto de esta manta?`)) return;
+  const r = await fetch(`/api/nominas/manta/${encodeURIComponent(manta)}/exclusions/${sailorId}`, { method: "DELETE" });
+  const j = await r.json();
+  if (!r.ok) { alert(j?.error ?? "Error"); return; }
+  refresh();
+}
+
 async function validate(manta: string, validate: boolean, refresh: () => void) {
   const verb = validate ? "validar" : "desvalidar";
   if (!confirm(`¿${verb.charAt(0).toUpperCase() + verb.slice(1)} esta manta?`)) return;
@@ -694,11 +899,11 @@ async function sendByEmailWithPdf(data: any, manta: string, audience: "armadores
     `MANTA Nº ${manta}${versionLabel}`,
     `Período: ${data.periodFrom ?? "?"} → ${data.periodTo ?? "?"}`,
     ``,
-    `Total ingresos: ${data.totalIngresos.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`,
-    `Total gastos: ${data.totalGastos.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`,
-    `Líquido Monte Mayor: ${data.liquidoMonteMayor.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`,
-    `Líquido bruto (50%): ${data.liquidoBruto.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`,
-    `Importe por parte: ${data.importePorParte.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`,
+    `Total ingresos: ${data.totalIngresos.toLocaleString("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" } as any)}`,
+    `Total gastos: ${data.totalGastos.toLocaleString("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" } as any)}`,
+    `Líquido Monte Mayor: ${data.liquidoMonteMayor.toLocaleString("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" } as any)}`,
+    `Líquido bruto (50%): ${data.liquidoBruto.toLocaleString("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" } as any)}`,
+    `Importe por parte: ${data.importePorParte.toLocaleString("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" } as any)}`,
     ``,
     `>>> ADJUNTA el fichero "${filename}" que se acaba de descargar a tu carpeta Descargas. <<<`,
     `(Los navegadores no permiten adjuntarlo automáticamente: arrástralo al mensaje o usa el botón "Adjuntar".)`,
@@ -736,7 +941,16 @@ function Field({ label, children, className }: { label: string; children: any; c
 }
 
 function fmtEur(n: any) {
-  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // useGrouping: "always" fuerza el separador de miles incluso para números
+  // de 4 dígitos (8.885,66 en lugar de 8885,66) — el locale es-ES por defecto
+  // solo agrupa a partir de 5 dígitos, lo que rompe la legibilidad visual.
+  return (Number(n) || 0).toLocaleString("es-ES", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: "always"
+  } as any);
 }
 
 function formatDate(iso: string | null): string {

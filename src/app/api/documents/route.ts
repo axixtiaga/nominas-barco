@@ -21,8 +21,19 @@ export async function POST(req: NextRequest) {
     if (!(file instanceof File)) return fail(400, "Archivo requerido en campo 'file'");
     if (file.type && file.type !== "application/pdf") return fail(400, "Solo PDFs");
 
+    // Pista opcional de la pestaña desde la que se sube (CAPTURA/GASTO). Solo es
+    // una pista: autoDetectKind decide por el CONTENIDO del PDF.
+    const kindHint = form.get("kind");
+    const kind = (kindHint === "GASTO" || kindHint === "CAPTURA") ? kindHint : undefined;
+
     const buf = Buffer.from(await file.arrayBuffer());
-    const result = await importPdf({ filename: file.name, buffer: buf, uploaderId: s.sub });
+    const result = await importPdf({
+      filename: file.name,
+      buffer: buf,
+      uploaderId: s.sub,
+      kind: kind as "CAPTURA" | "GASTO" | undefined,
+      autoDetectKind: true
+    });
     return ok(result, 201);
   } catch (e) { return handle(e); }
 }

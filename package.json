@@ -4,18 +4,25 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && prisma db push --accept-data-loss && next build",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:reset": "prisma migrate reset --force",
     "prisma:seed": "tsx prisma/seed.ts",
+    "db:push": "prisma db push",
     "watch": "tsx scripts/watch.ts",
     "backup": "tsx scripts/backup.ts",
     "reparse:format": "tsx scripts/reparse-by-format.ts",
     "seed:port-taxes": "tsx scripts/seed-port-tax-rates.ts",
     "seed:sailors": "tsx scripts/seed-sailors.ts",
+    "seed:gijon": "tsx scripts/seed-gijon.ts",
+    "seed:sanvicente": "tsx scripts/seed-sanvicente.ts",
+    "seed:aviles": "tsx scripts/seed-aviles.ts",
+    "check:santona": "tsx scripts/check-santona.ts",
+    "classify": "tsx scripts/classify-pdf.ts",
     "test": "vitest run"
   },
   "prisma": {
@@ -28,7 +35,7 @@
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "jose": "^5.9.6",
-    "next": "14.2.15",
+    "next": "^14.2.35",
     "nodemailer": "^8.0.7",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.15.0",
@@ -50,6 +57,6 @@
     "tailwindcss": "^3.4.13",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.2"
+    "vitest": "^4.1.5"
   }
 }

@@ -3,8 +3,13 @@ import { ok, fail, handle } from "@/lib/http";
 import { requireSession } from "@/lib/session";
 import {
   AnalysisFilters,
-  getKpis, getDaily, getMonthly, getBySpecies, getByPort, getBySupplier
+  getKpis, getDaily, getWeekly, getMonthly, getBySpecies, getByPort, getBySupplier
 } from "@/lib/services/analysis";
+
+// Igual que /api/dashboard: estos endpoints alimentan el panel y deben
+// reflejar el estado actual de la BD tras un DELETE / edición.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest, { params }: { params: { dim: string } }) {
   try {
@@ -21,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { dim: string 
     let breakdown: any[] = [];
     switch (params.dim) {
       case "daily":    breakdown = await getDaily(filters); break;
+      case "weekly":   breakdown = await getWeekly(filters); break;
       case "monthly":  breakdown = await getMonthly(filters); break;
       case "species":  breakdown = await getBySpecies(filters); break;
       case "port":     breakdown = await getByPort(filters); break;

@@ -32,7 +32,7 @@ type Totals = {
 type SortKey =
   | "date" | "portName" | "invoiceNumbers" | "totalPesca" | "portRate" | "impuestoPuerto"
   | "subtotal" | "kofradiaHnd" | "federacion" | "opegui" | "gastosDia"
-  | "montemayor" | "ss35" | "ss40" | "manta" | "paid";
+  | "montemayor" | "ss35" | "manta" | "paid";
 type SortDir = "asc" | "desc";
 
 export default function NominasPage() {
@@ -233,7 +233,6 @@ export default function NominasPage() {
               <Th k="gastosDia"      label="Gastos"         sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} right title="Suma de gastos imputados a esta jornada" />
               <Th k="montemayor"     label="Montemayor"     sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} right />
               <Th k="ss35"           label="SS 3,5%"         sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} right />
-              <Th k="ss40"           label="SS 4%"           sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} right />
               <Th k="manta"          label="Manta"          sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
               <Th k="paid"           label="Cobrado"        sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} center />
               <th></th>
@@ -244,7 +243,7 @@ export default function NominasPage() {
               <RowsByManta key={mantaKey} mantaKey={mantaKey} rows={group} edit={edit} setRowEdit={setRowEdit} saveRow={saveRow} grouped={groupByManta} />
             ))}
             {!rows.length && !loading && (
-              <tr><td colSpan={17} className="text-center py-10 text-slate-500">
+              <tr><td colSpan={16} className="text-center py-10 text-slate-500">
                 Sin datos. Comprueba que tienes capturas <b>verificadas</b> con líneas que tengan fecha y, si tienes filtro "con manta", que les hayas asignado una.
               </td></tr>
             )}
@@ -288,7 +287,7 @@ function RowsByManta({ mantaKey, rows, edit, setRowEdit, saveRow, grouped }: any
     <>
       {grouped && (
         <tr className="bg-slate-100">
-          <td colSpan={17} className="py-2.5">
+          <td colSpan={16} className="py-2.5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="font-medium text-slate-700">
                 Manta <b className="text-base">{mantaKey}</b> · {rows.length} jornada{rows.length === 1 ? "" : "s"} · Suma montemayor: <b>{fmtEur(groupTotal)}</b>
@@ -333,7 +332,6 @@ function RowsByManta({ mantaKey, rows, edit, setRowEdit, saveRow, grouped }: any
             </td>
             <td className="text-right tabular-nums font-bold">{fmtEur(r.montemayor)}</td>
             <td className="text-right tabular-nums text-slate-600">{fmtEur(r.ss35)}</td>
-            <td className="text-right tabular-nums text-slate-600">{fmtEur(r.ss40)}</td>
             <td>
               <input
                 className="input text-xs py-1 w-16"
@@ -378,5 +376,5 @@ function Kpi({ label, value, highlight }: { label: string; value: string; highli
 }
 
 function fmtEur(n: any) {
-  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 }

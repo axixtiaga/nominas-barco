@@ -59,3 +59,14 @@ backups/
 *.dump
 *.sqlite
 *.db
+*.sql
+
+# ── ARCHIVOS TEMPORALES DE PRUEBAS (solo en la raíz; NO afecta a src/) ──
+/_*.cjs
+/_*.ts
+/tsconfig.tsbuildinfo
+# Archivos vacíos creados por error en alguna ejecución
+/next
+/npm
+/rmdir
+/capturas@0.1.0

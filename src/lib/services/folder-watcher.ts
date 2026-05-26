@@ -100,13 +100,15 @@ async function processFile(file: string, baseFolder: string, kind: DocumentKindF
     }
 
     // PDF (Capturas / Gastos)
-    const portHint = kind === "CAPTURA" ? portHintFor(file, baseFolder, cfg.portHintFromSubfolder) : null;
+    // El `kind` de la carpeta es solo una PISTA: autoDetectKind decide por contenido.
+    const portHint = portHintFor(file, baseFolder, cfg.portHintFromSubfolder);
     const res = await importPdf({
       filename: path.basename(file),
       buffer: buf,
       uploaderId: null,
       portHint,
       kind,
+      autoDetectKind: true,
       source: "watcher",
       originalPath: file
     });

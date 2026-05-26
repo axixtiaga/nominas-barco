@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AnalysisClient } from "@/components/AnalysisClient";
 
-const ALLOWED = ["species", "port", "supplier", "daily", "monthly"] as const;
+const ALLOWED = ["species", "port", "supplier", "daily", "weekly", "monthly"] as const;
 
 export default async function AnalysisPage({ params }: { params: { dim: string } }) {
   if (!ALLOWED.includes(params.dim as any)) return notFound();

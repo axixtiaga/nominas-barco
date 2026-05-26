@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Guía de instalación — Itsas Lagunak (demo en otro ordenador)</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 860px; margin: 0 auto; padding: 32px 24px 80px; color: #1e293b; line-height: 1.6; }
+  h1 { font-size: 26px; border-bottom: 3px solid #2563eb; padding-bottom: 10px; }
+  h2 { font-size: 20px; margin-top: 38px; color: #1d4ed8; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+  h3 { font-size: 16px; margin-top: 24px; color: #334155; }
+  code, pre { font-family: Consolas, Monaco, monospace; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+  code.inline { background: #e2e8f0; padding: 1px 6px; border-radius: 4px; font-size: 90%; }
+  .nota { background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .aviso { background: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .ok { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .paso { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 18px; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid #cbd5e1; padding: 7px 10px; text-align: left; }
+  th { background: #f1f5f9; }
+  .tag { display: inline-block; background: #2563eb; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<h1>Instalar la aplicación Itsas Lagunak en otro ordenador (demo)</h1>
+
+<p>Esta guía explica cómo montar una <b>copia completa e independiente</b> de la aplicación en un portátil Windows, con tus <b>datos reales</b>, para enseñarla. Tiempo aproximado: <b>1 hora</b>. No hace falta saber programar: solo seguir los pasos y copiar/pegar los comandos.</p>
+
+<div class="nota"><b>Qué vas a necesitar:</b> el portátil de demostración (Windows 10/11), una memoria USB (o Dropbox) para pasar archivos del ordenador principal al portátil, y conexión a internet en el portátil para descargar dos programas.</div>
+
+<div class="aviso"><b>Importante — apunta esto antes de empezar.</b> En el paso de PostgreSQL te pedirá inventar una <b>contraseña</b> para el usuario <code class="inline">postgres</code>. Apúntala en un papel, la necesitarás varias veces. En esta guía la llamaremos <b>TU_CONTRASEÑA</b>.</div>
+
+<h2>Parte 1 · Instalar los dos programas base <span class="tag">en el portátil</span></h2>
+
+<h3>1.1 — Node.js</h3>
+<div class="paso">
+<ol>
+<li>En el portátil, abre el navegador y entra en <b>https://nodejs.org</b></li>
+<li>Descarga la versión <b>LTS</b> (el botón grande de la izquierda).</li>
+<li>Ejecuta el instalador y pulsa <b>Siguiente / Next</b> en todo (acepta los valores por defecto) hasta <b>Finish</b>.</li>
+</ol>
+</div>
+
+<h3>1.2 — PostgreSQL 17</h3>
+<div class="paso">
+<ol>
+<li>Entra en <b>https://www.postgresql.org/download/windows/</b> → "Download the installer" → elige la versión <b>17</b>.</li>
+<li>Ejecuta el instalador. Pulsa Siguiente hasta llegar a la pantalla de <b>contraseña</b>.</li>
+<li><b>Escribe TU_CONTRASEÑA</b> (la que apuntaste). Apúntala bien.</li>
+<li>Cuando pregunte el <b>puerto</b>, déjalo en <b>5432</b>.</li>
+<li>Sigue pulsando Siguiente hasta el final. Si al terminar abre el "Stack Builder", ciérralo (no hace falta).</li>
+</ol>
+</div>
+
+<div class="ok"><b>Comprobación rápida.</b> Abre el menú Inicio, escribe <code class="inline">cmd</code> y pulsa Enter. En la ventana negra escribe <code class="inline">node --version</code> y pulsa Enter: debe salir un número (ej. v20.x). Eso confirma que Node está instalado.</div>
+
+<h2>Parte 2 · Copiar la aplicación <span class="tag">del principal al portátil</span></h2>
+
+<div class="aviso"><b>NO copies la carpeta <code class="inline">node_modules</code></b> (es enorme y se vuelve a generar sola). Copia todo lo demás.</div>
+
+<div class="paso">
+<ol>
+<li>En tu <b>ordenador principal</b>, ve a la carpeta del proyecto:<br>
+<code class="inline">C:\Users\User\Documents\Claude\Projects\Capturas</code></li>
+<li>Selecciona todo el contenido <b>EXCEPTO</b> la carpeta <code class="inline">node_modules</code> (y si existe, tampoco copies <code class="inline">.next</code>).</li>
+<li>Cópialo a la memoria USB.</li>
+<li>En el <b>portátil</b>, crea una carpeta sencilla, por ejemplo <code class="inline">C:\Capturas</code>, y pega ahí todo el contenido del USB.</li>
+</ol>
+</div>
+
+<h2>Parte 3 · Copiar los datos reales <span class="tag">para que la demo tenga contenido</span></h2>
+
+<p>Vamos a hacer una copia de la base de datos del ordenador principal y restaurarla en el portátil. Así la demo mostrará tus capturas, gastos y nóminas reales.</p>
+
+<h3>3.1 — Generar la copia (en el ordenador PRINCIPAL)</h3>
+<div class="paso">
+<p>Abre <code class="inline">cmd</code> y pega este comando (te pedirá la contraseña de PostgreSQL <b>de tu ordenador principal</b>):</p>
+<pre>"C:\Program Files\PostgreSQL\17\bin\pg_dump.exe" -U postgres -d capturas -f "%USERPROFILE%\Desktop\capturas_datos.sql"</pre>
+<p>Se creará el archivo <b>capturas_datos.sql</b> en el Escritorio. Cópialo también a la memoria USB y llévalo al portátil (por ejemplo a <code class="inline">C:\Capturas</code>).</p>
+</div>
+
+<h3>3.2 — Restaurar la copia (en el PORTÁTIL)</h3>
+<div class="paso">
+<p>Abre <code class="inline">cmd</code> en el portátil. Primero crea la base de datos vacía (te pedirá TU_CONTRASEÑA del portátil):</p>
+<pre>"C:\Program Files\PostgreSQL\17\bin\createdb.exe" -U postgres capturas</pre>
+<p>Después restaura los datos:</p>
+<pre>"C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -d capturas -f "C:\Capturas\capturas_datos.sql"</pre>
+</div>
+
+<div class="nota"><b>¿Prefieres una demo "en limpio" sin tus datos reales?</b> Entonces sáltate la Parte 3 entera. Más abajo, en la Parte 5, te indico cómo crear las tablas vacías y unos datos de ejemplo en su lugar.</div>
+
+<h2>Parte 4 · Configurar la conexión <span class="tag">en el portátil</span></h2>
+
+<div class="paso">
+<ol>
+<li>En la carpeta <code class="inline">C:\Capturas</code> del portátil, busca el archivo <code class="inline">.env</code> (si no se ve, activa "Elementos ocultos" en la pestaña Vista del Explorador).</li>
+<li>Ábrelo con el <b>Bloc de notas</b> (clic derecho → Abrir con → Bloc de notas).</li>
+<li>Busca la primera línea, <code class="inline">DATABASE_URL=...</code>, y déjala exactamente así (cambiando <b>TU_CONTRASEÑA</b> por la del portátil):</li>
+</ol>
+<pre>DATABASE_URL="postgresql://postgres:TU_CONTRASEÑA@localhost:5432/capturas?schema=public"</pre>
+<p>Guarda el archivo (Archivo → Guardar) y ciérralo.</p>
+</div>
+
+<div class="nota">Las líneas de <code class="inline">WATCH_FOLDER</code>, <code class="inline">GASTOS_FOLDER</code>, etc. apuntan a carpetas de tu Dropbox que no existen en el portátil. <b>Para la demo no importan</b> (no vamos a importar PDFs nuevos), puedes dejarlas como están.</div>
+
+<h2>Parte 5 · Instalar y arrancar <span class="tag">en el portátil</span></h2>
+
+<div class="paso">
+<p><b>1)</b> Abre <code class="inline">cmd</code> y entra en la carpeta del proyecto:</p>
+<pre>cd C:\Capturas</pre>
+<p><b>2)</b> Instala las dependencias (tarda unos minutos, descarga muchas cosas):</p>
+<pre>npm install</pre>
+<p><b>3)</b> Genera el cliente de base de datos:</p>
+<pre>npx prisma generate</pre>
+</div>
+
+<div class="nota"><b>Solo si te SALTASTE la Parte 3</b> (demo sin datos reales): crea las tablas vacías y unos datos de ejemplo ejecutando, uno por uno:
+<pre>npm run db:push
+npm run prisma:seed
+npm run seed:sailors</pre>
+Si SÍ restauraste tus datos en la Parte 3, <b>NO ejecutes estos tres comandos</b>.</div>
+
+<div class="paso">
+<p><b>4)</b> Arranca la aplicación:</p>
+<pre>npm run dev</pre>
+<p>Espera a que ponga algo como <code class="inline">Ready in ... - Local: http://localhost:3000</code>. <b>Deja esta ventana negra abierta</b> mientras hagas la demo (si la cierras, la app se apaga).</p>
+<p><b>5)</b> Abre el navegador del portátil en:</p>
+<pre>http://localhost:3000</pre>
+</div>
+
+<h2>Entrar en la aplicación</h2>
+<table>
+<tr><th>Si...</th><th>Usuario y contraseña</th></tr>
+<tr><td>Restauraste tus datos reales (Parte 3)</td><td>Tu usuario y contraseña habituales</td></tr>
+<tr><td>Hiciste demo en limpio (datos de ejemplo)</td><td>Usuario: <code class="inline">admin@capturas.local</code><br>Contraseña: <code class="inline">admin1234</code></td></tr>
+</table>
+
+<div class="ok"><b>¡Listo!</b> Ya tienes la aplicación funcionando en el portátil, independiente de tu ordenador principal. Puedes enseñar el panel, las capturas, los gastos y las nóminas.</div>
+
+<h2>Apagar y volver a encender</h2>
+<div class="paso">
+<p><b>Para apagar:</b> cierra la ventana negra del <code class="inline">npm run dev</code> (o pulsa Ctrl+C dentro de ella).</p>
+<p><b>Para volver a encender otro día:</b> abre <code class="inline">cmd</code>, escribe <code class="inline">cd C:\Capturas</code>, pulsa Enter, escribe <code class="inline">npm run dev</code>, pulsa Enter, y abre <code class="inline">http://localhost:3000</code> en el navegador. (No hace falta volver a instalar nada.)</p>
+</div>
+
+<h2>Si algo falla</h2>
+<table>
+<tr><th>Mensaje / problema</th><th>Solución</th></tr>
+<tr><td><code class="inline">npm no se reconoce...</code></td><td>No estás en la carpeta correcta. Asegúrate de haber hecho <code class="inline">cd C:\Capturas</code> primero.</td></tr>
+<tr><td><code class="inline">password authentication failed</code></td><td>La contraseña del <code class="inline">.env</code> no coincide con la de PostgreSQL del portátil. Revísala.</td></tr>
+<tr><td><code class="inline">database "capturas" does not exist</code></td><td>Falta crear la base de datos: comando <code class="inline">createdb</code> del paso 3.2.</td></tr>
+<tr><td>El navegador dice "no se puede conectar"</td><td>La ventana del <code class="inline">npm run dev</code> se cerró o aún no terminó de arrancar. Vuelve a lanzarla y espera al "Ready".</td></tr>
+<tr><td>Error de Prisma al arrancar</td><td>Ejecuta <code class="inline">npx prisma generate</code> otra vez y reinicia <code class="inline">npm run dev</code>.</td></tr>
+</table>
+
+<div class="nota"><b>Recuerda:</b> esta copia del portátil es <b>independiente</b>. Lo que cambies aquí NO afecta a tu ordenador principal, y viceversa. Es perfecto para demos sin riesgo.</div>
+
+</body>
+</html>

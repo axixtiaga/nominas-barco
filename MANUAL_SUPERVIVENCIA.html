@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Manual de supervivencia — Itsas Lagunak Capturas</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 20px; color: #1f2937; line-height: 1.55; }
+  h1 { font-size: 28px; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px; color: #1e3a8a; }
+  h2 { font-size: 20px; margin-top: 32px; padding-top: 16px; border-top: 2px solid #cbd5e1; color: #0f172a; page-break-after: avoid; }
+  h3 { font-size: 16px; margin-top: 20px; color: #334155; page-break-after: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #1e3a8a; color: white; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: Consolas, monospace; }
+  pre { background: #f1f5f9; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; border: 1px solid #cbd5e1; page-break-inside: avoid; }
+  pre code { background: transparent; padding: 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  .nota { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .alerta { background: #fee2e2; border-left: 4px solid #ef4444; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .ok { background: #ecfdf5; border-left: 4px solid #10b981; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #cbd5e1; font-size: 11px; color: #64748b; text-align: center; }
+  hr { border: none; border-top: 1px solid #cbd5e1; margin: 24px 0; }
+  a { color: #1e3a8a; }
+  @media print {
+    body { margin: 15mm; max-width: none; font-size: 11pt; }
+    h1 { font-size: 20pt; page-break-before: avoid; }
+    h2 { font-size: 14pt; page-break-before: auto; }
+    h3 { font-size: 12pt; }
+    .no-print { display: none; }
+    a { color: black; text-decoration: none; }
+    pre, table { page-break-inside: avoid; }
+  }
+  .hint { background: #dbeafe; border: 1px solid #93c5fd; padding: 10px 14px; border-radius: 4px; margin: 16px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="hint no-print">
+  📄 <b>Para imprimir o guardar como PDF:</b> pulsa <b>Ctrl + P</b>. Elige tu impresora o "Microsoft Print to PDF" / "Guardar como PDF". Este aviso azul no aparecerá en la versión impresa.
+</div>
+
+<h1>Manual de supervivencia — Itsas Lagunak Capturas</h1>
+
+<div class="nota">
+  Para imprimir, guardar y consultar cuando algo va mal. <br>
+  Este manual está pensado para situaciones de urgencia: la app no arranca, faltan datos, el PC se ha roto, etc. <b>Imprímelo y guárdalo en un sitio físico</b> (carpeta del barco, despacho). También está en GitHub: <a href="https://github.com/axixtiaga/nominas-barco">https://github.com/axixtiaga/nominas-barco</a>
+</div>
+
+<p><i>Última actualización: 29 de abril de 2026.</i></p>
+
+<h2>1. Información clave a tener siempre a mano</h2>
+
+<h3>Datos de la aplicación</h3>
+<table>
+<tr><th>Concepto</th><th>Valor</th></tr>
+<tr><td>Nombre del proyecto</td><td><b>Capturas Itsas Lagunak</b></td></tr>
+<tr><td>Carpeta del proyecto en el PC</td><td><code>C:\Users\User\Documents\Claude\Projects\Capturas</code></td></tr>
+<tr><td>URL local cuando está en marcha</td><td><a href="http://localhost:3000">http://localhost:3000</a></td></tr>
+<tr><td>URL del código en GitHub</td><td><a href="https://github.com/axixtiaga/nominas-barco">https://github.com/axixtiaga/nominas-barco</a></td></tr>
+<tr><td>Carpeta de PDFs de capturas</td><td><code>C:\Users\User\Dropbox\Itsas Lagunak\Cuentas 2026\Capturas Txanteles</code></td></tr>
+<tr><td>Carpeta de PDFs de gastos</td><td><code>C:\Users\User\Dropbox\Itsas Lagunak\Cuentas 2026\Gastos Txanteles</code></td></tr>
+<tr><td>Carpeta de Excels SS</td><td><code>C:\Users\User\Dropbox\Itsas Lagunak\Cuentas 2026\Seguridad Social</code></td></tr>
+<tr><td>Carpeta de backups</td><td><code>C:\Users\User\Dropbox\Itsas Lagunak\Backups</code></td></tr>
+</table>
+
+<h3>Acceso a la app</h3>
+<table>
+<tr><th>Cuenta</th><th>Email</th><th>Contraseña</th></tr>
+<tr><td>Administrador</td><td><code>admin@capturas.local</code></td><td><code>admin1234</code></td></tr>
+<tr><td>______________________</td><td>______________________</td><td>______________________</td></tr>
+<tr><td>______________________</td><td>______________________</td><td>______________________</td></tr>
+<tr><td>______________________</td><td>______________________</td><td>______________________</td></tr>
+</table>
+<p style="font-size:12px"><i>Apunta a mano los demás usuarios cuando los crees.</i></p>
+
+<h3>Cuentas externas relacionadas</h3>
+<table>
+<tr><th>Servicio</th><th>Email</th><th>Para qué sirve</th></tr>
+<tr><td>Gmail Itsas Lagunak</td><td><code>itsaslagunak@gmail.com</code></td><td>Cuenta del barco, envío automático de PDFs</td></tr>
+<tr><td>GitHub</td><td><code>axixtiaga@gmail.com</code></td><td>Backup del código de la app</td></tr>
+<tr><td>Dropbox</td><td>(la cuenta del barco)</td><td>Sincronización de carpetas y backups</td></tr>
+</table>
+<div class="alerta">
+  Las <b>app passwords</b> (las de 16 letras de Google) <b>no se apuntan aquí</b>. Están en el archivo <code>.env</code> del PC. Si las necesitas regenerar: <a href="https://myaccount.google.com/apppasswords">https://myaccount.google.com/apppasswords</a>
+</div>
+
+<h2>2. Cómo arrancar la app (uso normal del día a día)</h2>
+<ol>
+<li>Doble clic en el acceso directo de <b>Capturas</b> del escritorio.</li>
+<li>Se abre una ventana negra (terminal) que dice cosas como <code>Ready in X.Xs</code>. <b>No la cierres</b> — es lo que mantiene la app encendida.</li>
+<li>Abre el navegador y ve a <a href="http://localhost:3000">http://localhost:3000</a>.</li>
+<li>Login con tus credenciales.</li>
+</ol>
+<p><b>Para apagar la app</b>: cierra la ventana negra de la terminal (o pulsa Ctrl+C dentro de ella y luego ciérrala).</p>
+
+<h2>3. Si la app no arranca</h2>
+
+<h3>Síntoma: el navegador dice "No se puede acceder a este sitio"</h3>
+<ol>
+<li>Comprueba que la <b>ventana negra está abierta</b> y dice <code>Ready in X.Xs</code>. Si la cerraste sin querer, vuelve a hacer doble clic en el acceso directo.</li>
+<li>Si la ventana sí está abierta pero hay errores en rojo, hazle una <b>captura de pantalla</b> y guárdala. Esa info es lo que necesita Asier (o un informático).</li>
+<li><b>Reinicia el PC</b> y vuelve a arrancar la app desde el acceso directo. Resuelve el 80% de los problemas raros.</li>
+</ol>
+
+<h3>Síntoma: errores en pantalla cuando navegas por la app</h3>
+<ol>
+<li><b>Refresca con Ctrl+F5</b> (mantén Ctrl y pulsa F5). Limpia la caché del navegador.</li>
+<li>Si persiste, <b>cierra sesión y vuelve a entrar</b>.</li>
+<li>Si persiste, <b>reinicia la aplicación</b>: cierra la ventana negra y vuelve a hacer doble clic en el acceso directo.</li>
+</ol>
+
+<h3>Síntoma: error tipo "Cannot connect to database" o "PostgreSQL"</h3>
+<p>PostgreSQL es la base de datos. Pasos:</p>
+<ol>
+<li>Pulsa la tecla <b>Windows</b> y escribe <code>Servicios</code>. Ábrelo.</li>
+<li>Busca en la lista cualquier servicio que empiece por <b>"postgresql-"</b> (suelen ser <code>postgresql-x64-16</code> o <code>postgresql-x64-17</code>).</li>
+<li>Comprueba que su estado pone <b>"En ejecución"</b>. Si pone <b>"Detenido"</b>: clic derecho → <b>Iniciar</b>.</li>
+<li>Vuelve a la app.</li>
+</ol>
+
+<h2>4. Si los datos parecen mal o se han borrado</h2>
+<div class="ok"><b>No te asustes</b>: tienes backups diarios automáticos en Dropbox.</div>
+
+<h3>Restaurar desde una copia anterior</h3>
+<ol>
+<li>Abre el navegador en la app: <b>Maestros → Backups</b>.</li>
+<li>Busca el backup del día/momento al que quieres volver.</li>
+<li><b>Antes de restaurar</b>, haz un backup del estado actual por si necesitas volver atrás: pulsa <b>"💾 Hacer backup ahora"</b>.</li>
+<li>Abre el <b>Símbolo del sistema</b> (tecla Windows → escribe <code>cmd</code> → Enter).</li>
+<li>Pega este comando (sustituyendo <code>YYYY-MM-DD-HHMMSS</code> por la fecha del backup):
+<pre><code>"C:\Program Files\PostgreSQL\17\bin\pg_restore.exe" --host=localhost --port=5432 --username=postgres --dbname=capturas --clean --if-exists "C:\Users\User\Dropbox\Itsas Lagunak\Backups\capturas-YYYY-MM-DD-HHMMSS.dump"</code></pre>
+</li>
+<li>Te pedirá la contraseña de Postgres. La encontrarás en el archivo <code>.env</code> del proyecto (línea <code>DATABASE_URL=...</code> después de <code>postgres:</code>).</li>
+<li>Espera a que termine. Refresca la app en el navegador.</li>
+</ol>
+<div class="alerta">⚠️ <b>Esto sobrescribe los datos actuales con los del backup</b>. Por eso conviene hacer un backup antes (paso 3).</div>
+
+<h2>5. Si el PC se ha roto o cambias de PC</h2>
+<p>Recuperar la app entera en un PC nuevo lleva 1-2 horas. Necesitas:</p>
+<ul>
+<li>Un PC con Windows.</li>
+<li>Conexión a internet.</li>
+<li>Acceso a tu cuenta de Dropbox y de GitHub.</li>
+</ul>
+
+<h3>Pasos</h3>
+<ol>
+<li><b>Instala PostgreSQL 17</b> desde <a href="https://www.postgresql.org/download/windows/">postgresql.org</a>. Marca <b>"Command Line Tools"</b> durante la instalación. <b>Apunta la contraseña de postgres</b> que pongas.</li>
+<li><b>Instala Node.js</b> versión 20+ desde <a href="https://nodejs.org">nodejs.org</a>.</li>
+<li><b>Instala Git</b> desde <a href="https://git-scm.com/download/win">git-scm.com</a>.</li>
+<li><b>Instala Dropbox</b> y espera a que sincronice tus carpetas (PDFs, Excels y backups bajarán solos).</li>
+<li>Abre el <b>Símbolo del sistema</b> y ejecuta:
+<pre><code>cd C:\Users\User\Documents
+mkdir Claude
+cd Claude
+mkdir Projects
+cd Projects
+git clone https://github.com/axixtiaga/nominas-barco.git Capturas
+cd Capturas
+npm install</code></pre>
+</li>
+<li><b>Crea un archivo <code>.env</code></b> en la carpeta del proyecto con:
+<ul>
+<li><code>DATABASE_URL="postgresql://postgres:LACONTRASEÑA@localhost:5432/capturas?schema=public"</code></li>
+<li><code>AUTH_SECRET="..."</code> (cualquier texto largo, mínimo 32 caracteres)</li>
+<li><code>WATCH_FOLDER</code>, <code>GASTOS_FOLDER</code>, <code>SS_FOLDER</code>, <code>BACKUP_FOLDER</code>: las rutas de la tabla del punto 1.</li>
+<li><code>SMTP_*</code>: las credenciales de Gmail (regenera app password si la has perdido).</li>
+</ul>
+Mira el fichero <code>.env.example</code> en GitHub que tiene una plantilla.
+</li>
+<li>Crea la base de datos vacía y aplica el esquema:
+<pre><code>npx prisma db push
+npx prisma generate</code></pre>
+</li>
+<li>Restaura el último backup desde Dropbox (ver punto 4).</li>
+<li>Arranca la app: <code>npm run dev</code></li>
+<li>Abre <a href="http://localhost:3000">http://localhost:3000</a> y haz login.</li>
+<li>Para que el watcher y los backups automáticos funcionen, rehaz:
+<ul>
+<li>El acceso directo del escritorio (que arranca app + watcher).</li>
+<li>La tarea programada del backup nocturno (Programador de tareas → Crear tarea básica).</li>
+</ul>
+</li>
+</ol>
+<div class="nota">
+  Si no tienes claro algún paso, <b>llama a Asier o a un informático local</b> y enséñale este manual. Cualquier desarrollador web con experiencia en Node + Postgres lo monta en una mañana.
+</div>
+
+<h2>6. Si el envío automático de emails deja de funcionar</h2>
+
+<h3>Síntoma: al pulsar "Enviar PDFs por email" sale error</h3>
+<ol>
+<li>Comprueba que tienes internet.</li>
+<li>Ve a <a href="http://localhost:3000/api/smtp/verify">http://localhost:3000/api/smtp/verify</a>.
+<ul>
+<li>Si dice <code>{"ok":true,"data":{"ok":true}}</code> → SMTP funciona, el problema es otro.</li>
+<li>Si dice error: la app password de Gmail probablemente caducó.</li>
+</ul>
+</li>
+</ol>
+
+<h3>Cómo regenerar la app password de Gmail</h3>
+<ol>
+<li>Ve a <a href="https://myaccount.google.com/apppasswords">myaccount.google.com/apppasswords</a> con la cuenta de Itsas Lagunak.</li>
+<li>Borra la app password vieja llamada "Capturas".</li>
+<li>Crea una nueva con el mismo nombre. Copia los 16 caracteres (sin espacios).</li>
+<li>Edita el <code>.env</code> del proyecto:
+<ul>
+<li>Busca la línea <code>SMTP_PASS=...</code></li>
+<li>Reemplaza con la nueva: <code>SMTP_PASS=xxxxxxxxxxxxxxxx</code></li>
+</ul>
+</li>
+<li>Guarda y reinicia la app.</li>
+</ol>
+
+<h2>7. Si Outlook deja de sincronizar la cuenta de Gmail</h2>
+<p>Mismo problema: la app password de Outlook caducó.</p>
+<ol>
+<li>Ve a <a href="https://myaccount.google.com/apppasswords">myaccount.google.com/apppasswords</a>.</li>
+<li>Crea una app password nueva llamada "Outlook".</li>
+<li>En Outlook: <b>Archivo → Configuración de la cuenta → Configuración de la cuenta</b>.</li>
+<li>Selecciona la cuenta de Gmail → <b>Reparar</b> (o quitar y volver a añadir).</li>
+<li>Cuando pida la contraseña, pega los 16 caracteres de la app password nueva.</li>
+</ol>
+
+<h2>8. Quién puede ayudarte si Asier no está disponible</h2>
+
+<h3>Para problemas leves</h3>
+<ul>
+<li>Refresca el navegador (Ctrl+F5).</li>
+<li>Reinicia el PC.</li>
+<li>Haz un backup desde Maestros → Backups.</li>
+<li>Espera unas horas a que Asier pueda responder.</li>
+</ul>
+
+<h3>Para problemas graves</h3>
+<p>Llama a un <b>informático local</b> con experiencia en:</p>
+<ul>
+<li>Aplicaciones web Node.js / Next.js</li>
+<li>Bases de datos PostgreSQL</li>
+<li>Windows + línea de comandos</li>
+</ul>
+<p>Enséñale este manual y especialmente la sección 9 + el repositorio en GitHub + la carpeta de backups.</p>
+
+<h3>Lo que NO debes hacer NUNCA</h3>
+<div class="alerta">
+<ul>
+<li>❌ Borrar la carpeta <code>C:\Users\User\Documents\Claude\Projects\Capturas</code>.</li>
+<li>❌ Borrar la carpeta de Dropbox <code>Itsas Lagunak</code>.</li>
+<li>❌ Desinstalar PostgreSQL sin antes hacer un backup.</li>
+<li>❌ Compartir el archivo <code>.env</code> con nadie por correo o WhatsApp.</li>
+<li>❌ Subir el archivo <code>.env</code> a GitHub.</li>
+<li>❌ Cambiar manualmente datos en la base de datos sin backup previo.</li>
+</ul>
+</div>
+
+<h2>9. Información técnica (para un informático)</h2>
+
+<h3>Stack tecnológico</h3>
+<ul>
+<li>Next.js 14 (App Router) + React 18 + TypeScript</li>
+<li>PostgreSQL 17 + Prisma ORM</li>
+<li>Tailwind CSS</li>
+<li>pdfkit (PDFs) + ExcelJS (Excel) + chokidar (watcher) + nodemailer (SMTP)</li>
+<li>jose (JWT auth) + bcryptjs (passwords)</li>
+</ul>
+
+<h3>Procesos en ejecución</h3>
+<ul>
+<li><code>npm run dev</code> → servidor Next.js (puerto 3000)</li>
+<li><code>npm run watch</code> → watcher de carpetas Dropbox (proceso aparte)</li>
+<li>Tarea programada de Windows que ejecuta <code>npm run backup</code> cada noche</li>
+</ul>
+
+<h3>Variables de entorno críticas (.env)</h3>
+<pre><code>DATABASE_URL="postgresql://postgres:&lt;pass&gt;@localhost:5432/capturas?schema=public"
+AUTH_SECRET="..."  # 32+ caracteres
+WATCH_FOLDER="C:\\...\\Capturas Txanteles"
+GASTOS_FOLDER="C:\\...\\Gastos Txanteles"
+SS_FOLDER="C:\\...\\Seguridad Social"
+BACKUP_FOLDER="C:\\...\\Backups"
+BACKUP_RETENTION_DAYS=30
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=itsaslagunak@gmail.com
+SMTP_PASS=&lt;app-password-de-16-letras&gt;
+SMTP_FROM=itsaslagunak@gmail.com
+SMTP_FROM_NAME="Itsas Lagunak"</code></pre>
+
+<h3>Comandos útiles</h3>
+<ul>
+<li><code>npm install</code> → instala dependencias</li>
+<li><code>npm run dev</code> → arranca en modo desarrollo</li>
+<li><code>npx prisma db push</code> → aplica cambios de schema a la BD</li>
+<li><code>npx prisma generate</code> → regenera cliente Prisma tras cambios</li>
+<li><code>npx prisma studio</code> → GUI para inspeccionar/editar la BD</li>
+<li><code>npm run backup</code> → ejecuta backup manual</li>
+</ul>
+
+<h3>Cómo restaurar un backup</h3>
+<pre><code>"C:\Program Files\PostgreSQL\17\bin\pg_restore.exe" \
+  --host=localhost --port=5432 \
+  --username=postgres --dbname=capturas \
+  --clean --if-exists \
+  "&lt;ruta-al-fichero.dump&gt;"</code></pre>
+
+<h2>10. Lista de comprobación mensual</h2>
+<p>Una vez al mes, verifica:</p>
+<ul>
+<li>☐ <b>Maestros → Backups</b> muestra "Al día" en verde.</li>
+<li>☐ El último backup tiene <b>fecha del día actual o de ayer</b>.</li>
+<li>☐ La carpeta de Dropbox <code>Backups</code> tiene ficheros con fechas recientes.</li>
+<li>☐ El <b>watcher de Dropbox</b> está activo (ventana negra de <code>npm run watch</code> sigue abierta).</li>
+<li>☐ El <b>envío de emails</b> sigue funcionando (no han caducado las app passwords).</li>
+<li>☐ Renovar suscripciones (dominio, nube) cuando aplique.</li>
+</ul>
+
+<h2>Contactos</h2>
+<table>
+<tr><th>Quién</th><th>Nombre</th><th>Teléfono</th><th>Email</th></tr>
+<tr><td>Asier (responsable de la app)</td><td>____________________</td><td>____________________</td><td>____________________</td></tr>
+<tr><td>Asesoría contable</td><td>____________________</td><td>____________________</td><td>____________________</td></tr>
+<tr><td>Informático de confianza</td><td>____________________</td><td>____________________</td><td>____________________</td></tr>
+<tr><td>Banco (Kutxabank)</td><td>____________________</td><td>____________________</td><td>____________________</td></tr>
+</table>
+
+<div class="footer">
+  Manual de supervivencia · Itsas Lagunak Capturas · Versión 1.0 · 29/04/2026
+</div>
+
+</body>
+</html>

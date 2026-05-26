@@ -5,8 +5,8 @@
  *   GASTOS   = Σ líneas de gasto marcadas para descontar (incluye gastos de cofradía Y proveedores varios)
  *   LIQUIDO MONTE MAYOR = INGRESOS − GASTOS
  *   PARTICIPACION TRIPULACION 50% = LIQUIDO MONTE MAYOR × 0.5
- *   SS PARTE TRIPULACION = INGRESOS × 4%   ← cálculo real (etiquetado como "3,5%" en UI/PDF por decisión del usuario)
- *   LIQUIDO BRUTO        = PARTICIPACION 50% − SS PARTE TRIPULACION
+ *   SS 3,5% PARTE TRIPULACION = INGRESOS × 3,5%     ← se calcula sobre los ingresos brutos del MM puro
+ *   LIQUIDO BRUTO             = PARTICIPACION 50% − SS 3,5%
  *   MANTA POR PARTE = LIQUIDO BRUTO / Σ partes de marineros activos
  *   IRPF MARINERO = MANTA × IRPF% del marinero
  *   LIQUIDO A PERCIBIR = MANTA POR PARTE − IRPF MARINERO
@@ -16,12 +16,10 @@ import { prisma } from "../prisma";
 const KOFRADIA_HND_RATE = 0.03;
 const FEDERACION_RATE   = 0.001;
 const OPEGUI_RATE       = 0.004;
-// Tipo REAL de retención por Seguridad Social aplicado sobre los ingresos brutos
-// para calcular la parte de la tripulación. Desde 2026 = 4%.
-// IMPORTANTE: por decisión del usuario, en las etiquetas mostradas a la
-// tripulación (PDF, UI) se sigue indicando "3,5%" aunque el cálculo use 4%.
-// No igualar la etiqueta sin confirmar con el armador.
-const SS_TRIPULACION    = 0.04;
+// Tipo de retención por Seguridad Social aplicado sobre los ingresos brutos
+// para calcular la parte de la tripulación. 3,5% — coincide con la etiqueta
+// "Participación 3,5% Seguridad Social" mostrada en el PDF y la UI.
+const SS_TRIPULACION    = 0.035;
 const PORTS_FED_OPEGUI_ON_GROSS = ["GETARIA", "PASAIA", "PASAJES"];
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -255,7 +253,15 @@ export async function calcMantaPayroll(manta: string): Promise<MantaPayroll> {
   const liquidoBruto = round2(participacionTripulacion - ssTripulacion);
 
   // 6) Cargar marineros activos y repartir
-  const sailors = await prisma.sailor.findMany({ where: { active: true }, orderBy: { name: "asc" } });
+  // Excluimos los marineros que el usuario haya marcado como NO participantes en
+  // esta manta concreta (modelo MantaSailorExclusion). Sus partes no cuentan,
+  // así que el €/parte se reparte entre los que sí cobran.
+  const [sailorsAll, exclusionsRows] = await Promise.all([
+    prisma.sailor.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.mantaSailorExclusion.findMany({ where: { manta }, select: { sailorId: true, reason: true } })
+  ]);
+  const excludedIds = new Set(exclusionsRows.map(e => e.sailorId));
+  const sailors = sailorsAll.filter(s => !excludedIds.has(s.id));
   const totalPartes = sailors.reduce((a, s) => a + Number(s.parts), 0);
   const importePorParte = totalPartes > 0 ? round2(liquidoBruto / totalPartes) : 0;
 
@@ -288,6 +294,21 @@ export async function calcMantaPayroll(manta: string): Promise<MantaPayroll> {
   const mantaInfo = await prisma.mantaInfo.findUnique({ where: { manta } });
   const validatedAt = mantaInfo?.validatedAt ? mantaInfo.validatedAt.toISOString() : null;
 
+  // Lista de excluidos (con su info de Sailor) para que la UI pueda mostrarlos
+  // y permitir reincluirlos.
+  const excluded = sailorsAll
+    .filter(s => excludedIds.has(s.id))
+    .map(s => {
+      const exRow = exclusionsRows.find(e => e.sailorId === s.id);
+      return {
+        sailorId: s.id,
+        name: s.name,
+        role: s.role,
+        parts: Number(s.parts),
+        reason: exRow?.reason ?? null
+      };
+    });
+
   return {
     manta,
     periodFrom,
@@ -305,6 +326,7 @@ export async function calcMantaPayroll(manta: string): Promise<MantaPayroll> {
     totalPartes,
     importePorParte,
     marineros,
+    excluded,
     totalIrpfRetenido,
     totalLiquidoAPercibir
   };

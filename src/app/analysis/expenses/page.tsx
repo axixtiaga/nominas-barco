@@ -7,7 +7,12 @@ type Expense = any;
 type SortKey = "issueDate" | "expenseNumber" | "supplierName" | "category" | "concept" | "baseAmount" | "vatAmount" | "totalAmount" | "status";
 type SortDir = "asc" | "desc";
 
-const CATEGORIES = ["", "COFRADIA", "COMBUSTIBLE", "HIELO", "VIVERES", "TELEFONIA", "TRANSPORTE", "MANTENIMIENTO", "OTRO"];
+// Lista completa de categorías — debe coincidir con el enum ExpenseCategory del schema.
+const CATEGORIES = [
+  "", "COFRADIA", "COMBUSTIBLE", "HIELO", "VIVERES", "TELEFONIA", "TRANSPORTE",
+  "MANTENIMIENTO", "HIELO_PRODUCIDO", "CAJAS", "PALETS", "APAREJOS",
+  "PAN", "AGUA", "CARNE", "MOVISTAR", "OTRO"
+];
 
 export default function ExpensesAnalysisPage() {
   const [rows, setRows] = useState<Expense[]>([]);
@@ -217,5 +222,5 @@ function Th({ k, label, sortKey, sortDir, onClick, right, center }: any) {
 }
 
 function fmtEur(n: any) {
-  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 }

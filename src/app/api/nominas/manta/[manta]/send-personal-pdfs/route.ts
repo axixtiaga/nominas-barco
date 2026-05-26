@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { manta: stri
           `Adjunto te envío tu nómina de la manta nº ${manta}.`,
           `Período: ${data.periodFrom ?? "?"} → ${data.periodTo ?? "?"}`,
           ``,
-          `Tu líquido a percibir: ${pdf.liquidoAPercibir.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`,
+          `Tu líquido a percibir: ${pdf.liquidoAPercibir.toLocaleString("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" } as any)}`,
           ``,
           `Si tienes cualquier duda, ponte en contacto conmigo.`,
           ``,

@@ -12,17 +12,23 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     const doc = await prisma.document.findUnique({ where: { id: params.id } });
     if (!doc) return fail(404, "Documento no encontrado");
 
-    // Borramos la invoice previa para reimportar en limpio
+    // Borramos invoice Y expense previos para reimportar en limpio (el documento
+    // podría reclasificarse de captura a gasto o viceversa).
     await prisma.invoice.deleteMany({ where: { documentId: doc.id } });
+    await prisma.expense.deleteMany({ where: { documentId: doc.id } });
     await prisma.document.delete({ where: { id: doc.id } });
 
     const buf = await fs.readFile(doc.storagePath);
     // Preserva la ruta original del Dropbox si el documento venía del watcher,
     // para que al verificar pueda archivarse en la subcarpeta "revisado/".
+    // autoDetectKind: re-decide captura/gasto por el CONTENIDO, así un documento
+    // mal clasificado se corrige al reparsear.
     const res = await importPdf({
       filename: doc.filename,
       buffer: buf,
       uploaderId: s.sub,
+      kind: doc.kind as "CAPTURA" | "GASTO",
+      autoDetectKind: true,
       originalPath: doc.originalPath ?? null,
       source: "reparse"
     });

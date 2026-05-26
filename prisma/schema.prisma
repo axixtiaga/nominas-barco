@@ -115,6 +115,24 @@ model MantaInfo {
   @@index([validatedAt])
 }
 
+// Marinero EXCLUIDO de una manta concreta. Caso típico: el marinero estuvo
+// de baja, no fue a la mar, o por cualquier motivo no le corresponde cobrar
+// ese período. Al excluirlo, sus partes se restan del total y el €/parte se
+// recalcula entre los marineros restantes.
+model MantaSailorExclusion {
+  id        String   @id @default(cuid())
+  manta     String                                // identificador de manta (debe coincidir con NominaDay.manta)
+  sailorId  String
+  reason    String?                                // motivo opcional (ej. "baja médica", "vacaciones")
+  createdAt DateTime @default(now())
+  createdBy String?                                // id del usuario que excluyó
+  sailor    Sailor   @relation(fields: [sailorId], references: [id], onDelete: Cascade)
+
+  @@unique([manta, sailorId])
+  @@index([manta])
+  @@index([sailorId])
+}
+
 // Gasto manual asignado a una manta (sin pasar por una factura PDF).
 // Caso típico: HIELO_PRODUCIDO calculado con horas × kg/hora × €/Tn.
 // También sirve para añadir cualquier gasto puntual a una manta.
@@ -173,6 +191,8 @@ model Sailor {
   contactEmail    String?
   // Pagos mensuales de Seguridad Social (uno por mes)
   ssPayments      SsPayment[]
+  // Mantas concretas de las que está excluido (baja, vacaciones, etc.)
+  exclusions      MantaSailorExclusion[]
 
   @@index([active])
   @@index([role])

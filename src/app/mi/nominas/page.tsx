@@ -179,7 +179,7 @@ function Kpi({ label, value, highlight }: { label: string; value: string; highli
   );
 }
 function fmtEur(n: any) {
-  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 }
 function periodLabel(from: string | null, to: string | null) {
   if (!from || !to) return "—";

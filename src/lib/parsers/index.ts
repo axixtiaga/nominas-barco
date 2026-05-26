@@ -6,6 +6,9 @@ import { ondarroaKalareDeunaParser } from "./ondarroa-kalaredeuna";
 import { getariaElkanoParser } from "./getaria-elkano";
 import { hondarribiaSanPedroParser } from "./hondarribia-sanpedro";
 import { bermeoSanPedroParser } from "./bermeo-sanpedro";
+import { gijonLonjaParser } from "./gijon-lonja";
+import { sanvicenteCofradiaParser } from "./sanvicente-cofradia";
+import { avilesRulaParser } from "./aviles-rula";
 
 /** Registry de parsers disponibles. Ampliar aquí al añadir un nuevo puerto. */
 export const registry: Record<string, ParserHandler> = {
@@ -15,6 +18,9 @@ export const registry: Record<string, ParserHandler> = {
   [getariaElkanoParser.key]: getariaElkanoParser,
   [hondarribiaSanPedroParser.key]: hondarribiaSanPedroParser,
   [bermeoSanPedroParser.key]: bermeoSanPedroParser,
+  [gijonLonjaParser.key]: gijonLonjaParser,
+  [sanvicenteCofradiaParser.key]: sanvicenteCofradiaParser,
+  [avilesRulaParser.key]: avilesRulaParser,
   [genericParser.key]: genericParser
 };
 
@@ -25,6 +31,9 @@ export {
   ondarroaKalareDeunaParser,
   getariaElkanoParser,
   hondarribiaSanPedroParser,
-  bermeoSanPedroParser
+  bermeoSanPedroParser,
+  gijonLonjaParser,
+  sanvicenteCofradiaParser,
+  avilesRulaParser
 };
 export * from "./base";

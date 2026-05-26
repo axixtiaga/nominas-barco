@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type SortKey = "issueDate" | "createdAt" | "portName" | "invoiceNumber" | "total" | "status";
 type SortDir = "asc" | "desc";
 type Tab = "CAPTURA" | "GASTO";
 
 export default function DocumentsPage() {
+  const searchParams = useSearchParams();
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -14,8 +16,10 @@ export default function DocumentsPage() {
   const [scanning, setScanning] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
-  // Pestaña activa: Capturas (lo de siempre) o Gastos (Fase 2 — pendiente)
-  const [tab, setTab] = useState<Tab>("CAPTURA");
+  // Pestaña activa: lee de ?tab= en la URL para que al volver desde "Guardar y verificar"
+  // se abra la pestaña correcta (Gastos vs Capturas). Si no hay parámetro, por defecto Capturas.
+  const initialTab: Tab = (searchParams?.get("tab") === "GASTO") ? "GASTO" : "CAPTURA";
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   // Orden actual (por defecto, fecha de factura descendente)
   const [sortKey, setSortKey] = useState<SortKey>("issueDate");
@@ -23,6 +27,9 @@ export default function DocumentsPage() {
 
   // Filtro por estado: "ALL" | "DRAFT" | "VERIFIED" | "FAILED" | "PARSED"
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Formulario de "gasto manual" (entrada sin PDF)
+  const [showManualForm, setShowManualForm] = useState(false);
 
   async function refresh() {
     const qs = `?kind=${tab}`;
@@ -115,6 +122,15 @@ export default function DocumentsPage() {
               Recalcular IVA 10%
             </button>
           )}
+          {tab === "GASTO" && (
+            <button
+              className="btn-primary bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => setShowManualForm(v => !v)}
+              title="Añadir un gasto sin PDF (a mano)"
+            >
+              {showManualForm ? "Cerrar formulario" : "+ Gasto manual"}
+            </button>
+          )}
           <button className="btn-ghost" onClick={scanNow} disabled={scanning}>{scanning ? "Escaneando..." : "Escanear carpetas ahora"}</button>
           <label className="btn-primary cursor-pointer">
             {loading ? "Importando..." : "Importar PDF"}
@@ -122,6 +138,10 @@ export default function DocumentsPage() {
           </label>
         </div>
       </div>
+
+      {tab === "GASTO" && showManualForm && (
+        <ManualExpenseForm onSaved={() => { setShowManualForm(false); refresh(); }} onCancel={() => setShowManualForm(false)} />
+      )}
 
       {/* Pestañas: Capturas vs Gastos */}
       <div className="border-b border-slate-200 flex gap-1">
@@ -150,7 +170,7 @@ export default function DocumentsPage() {
               onClick={() => setStatusFilter("FAILED")} />
           </div>
 
-          <GastosTab docs={sorted} />
+          <GastosTab docs={sorted} refresh={refresh} />
         </>
       ) : (
         <>
@@ -203,7 +223,15 @@ export default function DocumentsPage() {
                     <td>{d.invoice?.invoiceNumber ?? "—"}</td>
                     <td className="text-center tabular-nums">{d.invoice ? fmtEur(d.invoice.total) : "—"}</td>
                     <td><StatusBadge s={d.status} /></td>
-                    <td><Link className="btn-ghost" href={`/documents/${d.id}`}>Revisar</Link></td>
+                    <td className="whitespace-nowrap">
+                      <Link className="btn-ghost mr-1" href={`/documents/${d.id}`}>Revisar</Link>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded font-medium"
+                        onClick={() => deleteDoc(d.id, d.filename, refresh)}
+                        title="Borrar este documento (y sus datos)"
+                      >🗑 Borrar</button>
+                    </td>
                   </tr>
                 ))}
                 {!sorted.length && <tr><td colSpan={9} className="text-center py-6 text-slate-500">Sin documentos. Importa un PDF o activa el watcher.</td></tr>}
@@ -263,9 +291,9 @@ function WatcherBanner({ w }: { w: any }) {
 
 const fmtEur = (n: any) => (Number(n) || 0).toLocaleString("es-ES", {
   style: "currency", currency: "EUR",
-  useGrouping: true,
+  useGrouping: "always",
   minimumFractionDigits: 2, maximumFractionDigits: 2
-});
+} as any);
 
 function StatusBadge({ s }: { s: string }) {
   const map: Record<string, { cls: string; icon: string; label: string }> = {
@@ -324,7 +352,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
 }
 
 /** Pestaña de Gastos: lista los gastos extraídos. El banner y los chips los pone el padre. */
-function GastosTab({ docs }: { docs: any[] }) {
+function GastosTab({ docs, refresh }: { docs: any[]; refresh: () => void }) {
   // Total acumulado de gastos visibles (tras filtro por estado)
   const total = docs.reduce((a, d) => a + Number(d.expense?.totalAmount ?? 0), 0);
   return (
@@ -363,7 +391,15 @@ function GastosTab({ docs }: { docs: any[] }) {
                   <td className="text-right tabular-nums text-sm">{ex.vatAmount != null ? fmtEur(ex.vatAmount) : "—"}</td>
                   <td className="text-right tabular-nums text-sm font-medium">{ex.totalAmount != null ? fmtEur(ex.totalAmount) : "—"}</td>
                   <td><StatusBadge s={ex.status ?? d.status} /></td>
-                  <td><Link className="btn-ghost" href={`/documents/${d.id}`}>Revisar</Link></td>
+                  <td className="whitespace-nowrap">
+                    <Link className="btn-ghost mr-1" href={`/documents/${d.id}`}>Revisar</Link>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded font-medium"
+                      onClick={() => deleteDoc(d.id, d.filename, refresh)}
+                      title="Borrar este documento (y sus líneas)"
+                    >🗑 Borrar</button>
+                  </td>
                 </tr>
               );
             })}
@@ -375,17 +411,274 @@ function GastosTab({ docs }: { docs: any[] }) {
   );
 }
 
+/**
+ * Borra un documento (con confirmación).
+ * Si el endpoint devuelve 409 (manta validada), pregunta al usuario si quiere
+ * forzar el borrado y reintenta con ?force=true.
+ */
+async function deleteDoc(id: string, filename: string, refresh: () => void) {
+  if (!confirm(`¿Borrar el documento "${filename}"?\n\nSe eliminarán también todas sus líneas (capturas o gastos). Esta acción no se puede deshacer.`)) return;
+
+  let r: Response;
+  try {
+    r = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+  } catch (e: any) {
+    alert(`Error de conexión al borrar: ${e?.message ?? String(e)}`);
+    return;
+  }
+
+  // Conflicto por manta validada → ofrece forzar
+  if (r.status === 409) {
+    let conflictMsg = "Conflicto";
+    try { const cj = await r.json(); conflictMsg = cj?.error ?? conflictMsg; } catch {}
+    if (!confirm(`⚠️ ${conflictMsg}\n\n¿Forzar el borrado de todas formas? Esto puede dejar mantas validadas con datos incompletos.`)) return;
+    try {
+      r = await fetch(`/api/documents/${id}?force=true`, { method: "DELETE" });
+    } catch (e: any) {
+      alert(`Error de conexión al forzar borrado: ${e?.message ?? String(e)}`);
+      return;
+    }
+  }
+
+  // Cualquier otro error
+  if (!r.ok) {
+    let errMsg = `HTTP ${r.status}`;
+    try {
+      const j = await r.json();
+      if (j?.error) errMsg = j.error;
+    } catch {
+      try { errMsg = await r.text(); } catch {}
+    }
+    alert(`No se pudo borrar el documento.\n\n${errMsg}\n\nSi el problema persiste, manda esta info a Asier.`);
+    return;
+  }
+
+  refresh();
+}
+
+/**
+ * Formulario para crear un Gasto manualmente (sin PDF).
+ * Tras guardar, el gasto queda en estado DRAFT y el usuario puede ir a
+ * "Revisar" para validarlo.
+ */
+function ManualExpenseForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({
+    supplierName: "",
+    supplierTaxId: "",
+    issueDate: today,
+    serviceDate: "",
+    expenseNumber: "",
+    concept: "",
+    category: "OTRO",
+    portName: "",
+    baseAmount: "",
+    vatRate: "10",
+    vatAmount: "",
+    totalAmount: "",
+    notes: ""
+  });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [ports, setPorts] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; taxId: string | null }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/ports").then(r => r.json()).then(j => setPorts(j?.data ?? []));
+    fetch("/api/suppliers").then(r => r.json()).then(j => setSuppliers(j?.data ?? []));
+  }, []);
+
+  // Cuando el usuario elige (o escribe) un proveedor que ya existe, autorrellena el CIF.
+  function onSupplierNameChange(value: string) {
+    const next = { ...form, supplierName: value };
+    const normalized = value.trim().toLowerCase();
+    if (normalized.length >= 3) {
+      const match = suppliers.find(s => s.name.trim().toLowerCase() === normalized);
+      if (match && match.taxId && !form.supplierTaxId) {
+        next.supplierTaxId = match.taxId;
+      }
+    }
+    setForm(next);
+  }
+
+  // Auto-calcular IVA y total cuando se cambia la base
+  function recalc(field: string, value: string) {
+    const next = { ...form, [field]: value };
+    const base = parseFloat((field === "baseAmount" ? value : next.baseAmount).replace(",", "."));
+    const rate = parseFloat((field === "vatRate" ? value : next.vatRate).replace(",", "."));
+    if (Number.isFinite(base) && Number.isFinite(rate) && rate >= 0) {
+      const vat = Math.round(base * rate) / 100;
+      const total = Math.round((base + vat) * 100) / 100;
+      next.vatAmount = vat.toFixed(2);
+      next.totalAmount = total.toFixed(2);
+    }
+    setForm(next);
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+
+    const baseAmount = parseFloat(String(form.baseAmount).replace(",", "."));
+    const totalAmount = parseFloat(String(form.totalAmount).replace(",", "."));
+    if (!Number.isFinite(baseAmount) || baseAmount < 0) { setErr("Importe base obligatorio."); return; }
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) { setErr("Importe total obligatorio."); return; }
+    if (!form.supplierName.trim()) { setErr("Proveedor obligatorio."); return; }
+
+    setSaving(true);
+    try {
+      const r = await fetch("/api/expenses/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supplierName: form.supplierName.trim(),
+          supplierTaxId: form.supplierTaxId.trim() || null,
+          issueDate: form.issueDate || null,
+          serviceDate: form.serviceDate || null,
+          expenseNumber: form.expenseNumber.trim() || null,
+          concept: form.concept.trim() || null,
+          category: form.category,
+          portName: form.portName.trim() || null,
+          baseAmount,
+          vatRate: parseFloat(String(form.vatRate).replace(",", ".")) || 0,
+          vatAmount: parseFloat(String(form.vatAmount).replace(",", ".")) || 0,
+          totalAmount,
+          notes: form.notes.trim() || null
+        })
+      });
+      const j = await r.json();
+      if (!r.ok) { setErr(j?.error ?? "Error guardando"); return; }
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const CATEGORIES = [
+    "COFRADIA", "COMBUSTIBLE", "HIELO", "VIVERES", "TELEFONIA", "TRANSPORTE",
+    "MANTENIMIENTO", "HIELO_PRODUCIDO", "CAJAS", "PALETS", "APAREJOS",
+    "PAN", "AGUA", "CARNE", "MOVISTAR", "OTRO"
+  ];
+
+  return (
+    <form className="card border-emerald-300 bg-emerald-50/40 space-y-4" onSubmit={save}>
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-emerald-900">➕ Nuevo gasto manual</h2>
+        <button type="button" className="text-xs text-slate-500 hover:text-slate-700" onClick={onCancel}>× Cancelar</button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+        <ManualField label="Proveedor *" required>
+          <input
+            className="input"
+            value={form.supplierName}
+            onChange={e => onSupplierNameChange(e.target.value)}
+            placeholder="ej. AGROCOMERCIAL URANZU S.L."
+            list="manual-suppliers-list"
+            autoComplete="off"
+          />
+          <datalist id="manual-suppliers-list">
+            {suppliers.map(s => (
+              <option key={s.id} value={s.name}>
+                {s.taxId ? `${s.taxId}` : ""}
+              </option>
+            ))}
+          </datalist>
+          {suppliers.length > 0 && (
+            <span className="text-[10px] text-slate-500 italic">
+              💡 Empieza a escribir y aparecerán sugerencias ({suppliers.length} proveedores registrados)
+            </span>
+          )}
+        </ManualField>
+        <ManualField label="CIF / NIF del proveedor">
+          <input className="input" value={form.supplierTaxId} onChange={e => setForm({ ...form, supplierTaxId: e.target.value })} placeholder="ej. B20123456" />
+        </ManualField>
+        <ManualField label="Nº de factura">
+          <input className="input" value={form.expenseNumber} onChange={e => setForm({ ...form, expenseNumber: e.target.value })} placeholder="ej. F-2026-0042" />
+        </ManualField>
+        <ManualField label="Fecha emisión">
+          <input className="input" type="date" value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} />
+        </ManualField>
+
+        <ManualField label="Fecha servicio (opcional)">
+          <input className="input" type="date" value={form.serviceDate} onChange={e => setForm({ ...form, serviceDate: e.target.value })} />
+        </ManualField>
+        <ManualField label="Categoría">
+          <select className="input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </ManualField>
+        <ManualField label="Puerto / cofradía (opcional)">
+          <select className="input" value={form.portName} onChange={e => setForm({ ...form, portName: e.target.value })}>
+            <option value="">— Sin puerto —</option>
+            {ports.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
+        </ManualField>
+        <ManualField label="Concepto">
+          <input className="input" value={form.concept} onChange={e => setForm({ ...form, concept: e.target.value })} placeholder="ej. Víveres, alquiler cajas, gasoil…" />
+        </ManualField>
+
+        <ManualField label="Base imponible *" required>
+          <input className="input text-right tabular-nums" value={form.baseAmount} onChange={e => recalc("baseAmount", e.target.value)} placeholder="0,00" />
+        </ManualField>
+        <ManualField label="% IVA">
+          <input className="input text-right tabular-nums" value={form.vatRate} onChange={e => recalc("vatRate", e.target.value)} placeholder="10" />
+        </ManualField>
+        <ManualField label="Cuota IVA">
+          <input className="input text-right tabular-nums" value={form.vatAmount} onChange={e => setForm({ ...form, vatAmount: e.target.value })} placeholder="0,00" />
+        </ManualField>
+        <ManualField label="Total *" required>
+          <input className="input text-right tabular-nums font-semibold" value={form.totalAmount} onChange={e => setForm({ ...form, totalAmount: e.target.value })} placeholder="0,00" />
+        </ManualField>
+      </div>
+
+      <ManualField label="Notas (opcional)">
+        <input className="input" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+      </ManualField>
+
+      {err && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded p-2">{err}</div>}
+
+      <div className="flex gap-2 items-center">
+        <button type="submit" className="btn-primary bg-emerald-600 hover:bg-emerald-700" disabled={saving}>
+          {saving ? "Guardando..." : "💾 Crear gasto"}
+        </button>
+        <button type="button" className="btn-ghost" onClick={onCancel}>Cancelar</button>
+        <span className="text-[11px] text-slate-500 italic ml-auto">
+          Tras guardar, podrás validarlo desde el botón "Revisar" igual que un PDF importado.
+        </span>
+      </div>
+    </form>
+  );
+}
+
+function ManualField({ label, required, children }: { label: string; required?: boolean; children: any }) {
+  return (
+    <label className="block text-sm">
+      <span className={`block text-xs uppercase tracking-wide mb-1 ${required ? "text-emerald-900 font-semibold" : "text-slate-500"}`}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
 function CategoryBadge({ c }: { c?: string }) {
   if (!c) return <span className="text-slate-400">—</span>;
   const colors: Record<string, string> = {
-    COFRADIA:      "bg-indigo-100 text-indigo-800 border-indigo-200",
-    COMBUSTIBLE:   "bg-orange-100 text-orange-800 border-orange-200",
-    HIELO:         "bg-sky-100 text-sky-800 border-sky-200",
-    VIVERES:       "bg-lime-100 text-lime-800 border-lime-200",
-    TELEFONIA:     "bg-violet-100 text-violet-800 border-violet-200",
-    TRANSPORTE:    "bg-yellow-100 text-yellow-800 border-yellow-200",
-    MANTENIMIENTO: "bg-amber-100 text-amber-800 border-amber-200",
-    OTRO:          "bg-slate-100 text-slate-700 border-slate-200"
+    COFRADIA:         "bg-indigo-100 text-indigo-800 border-indigo-200",
+    COMBUSTIBLE:      "bg-orange-100 text-orange-800 border-orange-200",
+    HIELO:            "bg-sky-100 text-sky-800 border-sky-200",
+    HIELO_PRODUCIDO:  "bg-cyan-100 text-cyan-800 border-cyan-200",
+    VIVERES:          "bg-lime-100 text-lime-800 border-lime-200",
+    TELEFONIA:        "bg-violet-100 text-violet-800 border-violet-200",
+    MOVISTAR:         "bg-purple-100 text-purple-800 border-purple-200",
+    TRANSPORTE:       "bg-yellow-100 text-yellow-800 border-yellow-200",
+    MANTENIMIENTO:    "bg-amber-100 text-amber-800 border-amber-200",
+    CAJAS:            "bg-stone-100 text-stone-800 border-stone-200",
+    PALETS:           "bg-stone-100 text-stone-800 border-stone-200",
+    APAREJOS:         "bg-teal-100 text-teal-800 border-teal-200",
+    PAN:              "bg-yellow-100 text-yellow-800 border-yellow-200",
+    AGUA:             "bg-blue-100 text-blue-800 border-blue-200",
+    CARNE:            "bg-red-100 text-red-800 border-red-200",
+    OTRO:             "bg-slate-100 text-slate-700 border-slate-200"
   };
   const cls = colors[c] ?? colors.OTRO;
   return <span className={`px-2 py-0.5 rounded-full border text-xs ${cls}`}>{c}</span>;

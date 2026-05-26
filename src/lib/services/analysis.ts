@@ -1,7 +1,7 @@
 import { prisma } from "../prisma";
 import { Prisma } from "@prisma/client";
 
-export type AnalysisDim = "species" | "port" | "boat" | "supplier" | "daily" | "monthly";
+export type AnalysisDim = "species" | "port" | "boat" | "supplier" | "daily" | "weekly" | "monthly";
 
 export type AnalysisFilters = {
   from?: Date;
@@ -75,6 +75,43 @@ export async function getDaily(f: AnalysisFilters) {
     WHERE ${conds.join(" AND ")}
     GROUP BY 1, 2, 3
     ORDER BY 1 DESC, p.name ASC
+  `;
+  return prisma.$queryRawUnsafe<any[]>(sql, ...params);
+}
+
+/**
+ * Agrupa por semana ISO (lunes-domingo). Solo facturas verificadas.
+ * Devuelve:
+ *  - week:      identificador ordenable "2026-W18"
+ *  - label:     etiqueta legible para gráficos: "S18 · 27/04-03/05"
+ *  - weekStart: lunes de la semana en DD/MM/YYYY
+ *  - weekEnd:   domingo de la semana en DD/MM/YYYY
+ *  - kilos, amount, invoices
+ */
+export async function getWeekly(f: AnalysisFilters) {
+  const params: any[] = [];
+  const conds: string[] = [`il."lineDate" IS NOT NULL`, `inv.status = 'VERIFIED'`];
+  if (f.from) { params.push(f.from); conds.push(`il."lineDate" >= $${params.length}`); }
+  if (f.to)   { params.push(f.to);   conds.push(`il."lineDate" <= $${params.length}`); }
+  if (f.portId) { params.push(f.portId); conds.push(`inv."portId" = $${params.length}`); }
+  if (f.speciesId) { params.push(f.speciesId); conds.push(`il."speciesId" = $${params.length}`); }
+
+  const sql = `
+    SELECT
+      TO_CHAR(DATE_TRUNC('week', il."lineDate"), 'IYYY"-W"IW') AS week,
+      'S' || TO_CHAR(DATE_TRUNC('week', il."lineDate"), 'IW') ||
+        ' · ' || TO_CHAR(DATE_TRUNC('week', il."lineDate"), 'DD/MM') ||
+        '-'   || TO_CHAR(DATE_TRUNC('week', il."lineDate") + INTERVAL '6 days', 'DD/MM') AS label,
+      TO_CHAR(DATE_TRUNC('week', il."lineDate"), 'DD/MM/YYYY') AS "weekStart",
+      TO_CHAR(DATE_TRUNC('week', il."lineDate") + INTERVAL '6 days', 'DD/MM/YYYY') AS "weekEnd",
+      SUM(il.kilos)::float AS kilos,
+      SUM(il.amount)::float AS amount,
+      COUNT(DISTINCT il."invoiceId")::int AS invoices
+    FROM "InvoiceLine" il
+    JOIN "Invoice" inv ON il."invoiceId" = inv.id
+    WHERE ${conds.join(" AND ")}
+    GROUP BY 1, 2, 3, 4
+    ORDER BY 1 ASC
   `;
   return prisma.$queryRawUnsafe<any[]>(sql, ...params);
 }

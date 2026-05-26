@@ -99,7 +99,7 @@ export function InvoiceEditor({ invoice, document }: { invoice: any; document: a
       if (archive?.moved) {
         const shortDest = archive.destination?.split(/[\\\/]+/).slice(-2).join("/");
         setMsg(`✓ Factura verificada. Archivo movido a ${shortDest}.`);
-        setTimeout(() => router.push("/documents"), 1200);
+        setTimeout(() => router.push("/documents?tab=CAPTURA"), 1200);
       } else {
         // NO redirigimos: dejamos al usuario ver el motivo y actuar.
         setMsg(

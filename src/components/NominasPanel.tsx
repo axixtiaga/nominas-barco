@@ -246,7 +246,7 @@ function Kpi({ label, value, highlight }: { label: string; value: any; highlight
 }
 
 function fmtEur(n: any) {
-  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 }
 function fmtEurShort(n: any) {
   const v = Number(n) || 0;

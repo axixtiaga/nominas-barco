@@ -269,10 +269,8 @@ export default function SsPaymentsPage() {
                 <th>Mes</th>
                 <th className="text-right">Mantas</th>
                 <th className="text-right">Retenido 3,5%</th>
-                <th className="text-right">Retenido 4%</th>
                 <th className="text-right">Pagado a SS</th>
-                <th className="text-right">Δ vs 3,5%</th>
-                <th className="text-right">Δ vs 4%</th>
+                <th className="text-right">Diferencia</th>
               </tr>
             </thead>
             <tbody>
@@ -281,10 +279,8 @@ export default function SsPaymentsPage() {
                   <td className="font-medium">{formatMonth(m.month)}</td>
                   <td className="text-right tabular-nums">{m.mantasCount}</td>
                   <td className="text-right tabular-nums">{fmtEur(m.totalRetenido35)}</td>
-                  <td className="text-right tabular-nums">{fmtEur(m.totalRetenido40)}</td>
                   <td className="text-right tabular-nums font-semibold">{fmtEur(m.totalPagado)}</td>
                   <td className={`text-right tabular-nums ${m.diferencia35 > 0 ? "text-rose-700" : "text-emerald-700"}`}>{fmtEur(m.diferencia35)}</td>
-                  <td className={`text-right tabular-nums ${m.diferencia40 > 0 ? "text-rose-700" : "text-emerald-700"}`}>{fmtEur(m.diferencia40)}</td>
                 </tr>
               ))}
             </tbody>
@@ -354,7 +350,7 @@ export default function SsPaymentsPage() {
 }
 
 function fmtEur(n: any) {
-  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 }
 function formatMonth(m: string) {
   const [y, mm] = m.split("-").map(Number);

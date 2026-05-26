@@ -6,7 +6,7 @@ import { calcMantaPayroll } from "@/lib/services/manta-payroll";
 import PDFDocument from "pdfkit";
 
 const fmtEur = (n: number) =>
-  (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";

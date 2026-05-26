@@ -7,7 +7,13 @@ type Line = any;
 
 export function ExpenseEditor({ expense: initial, document: doc }: { expense: Expense; document: any }) {
   const router = useRouter();
-  const [e, setE] = useState<Expense>(() => ({ ...initial }));
+  const [e, setE] = useState<Expense>(() => {
+    // El % IVA solo puede ser 10 o 21. Si el parser dejó otro valor (p.ej. el
+    // tipo efectivo de un IVA mixto), por defecto lo ponemos a 21%.
+    const r = Number(initial.vatRate) || 0;
+    const vatRate = (r === 10 || r === 21) ? r : 21;
+    return { ...initial, vatRate };
+  });
   const [lines, setLines] = useState<Line[]>(() => (initial.lines ?? []).map((l: any) => ({ ...l })));
   const [supplierName, setSupplierName] = useState(initial.supplier?.name ?? "");
   const [supplierTaxId, setSupplierTaxId] = useState(initial.supplier?.taxId ?? "");
@@ -36,6 +42,26 @@ export function ExpenseEditor({ expense: initial, document: doc }: { expense: Ex
 
   // Total a descontar del montemayor (suma de líneas con includeInMontemayor=true)
   const computableTotal = lines.reduce((a, l) => a + (l.includeInMontemayor !== false ? Number(l.amount) || 0 : 0), 0);
+
+  // El % IVA solo admite 10 o 21 (por defecto 21). Estas derivadas controlan el desplegable.
+  const currentRate = Number(e.vatRate) || 0;
+  const ivaIsStandard = currentRate === 10 || currentRate === 21;
+  const ivaSelectValue = ivaIsStandard ? String(currentRate) : "21";
+
+  // Cuando hay líneas, los Importes totales se calculan AUTOMÁTICAMENTE a partir
+  // de las líneas marcadas y del % IVA: base = suma marcadas, IVA = base × %, total = base + IVA.
+  // (Si no hay líneas, los importes se editan a mano como antes.)
+  useEffect(() => {
+    if (lines.length === 0) return;
+    const base = Math.round(computableTotal * 100) / 100;
+    const rate = Number(e.vatRate) || 0;
+    const vat = Math.round(base * rate) / 100;
+    const total = Math.round((base + vat) * 100) / 100;
+    setE((prev: any) => {
+      if (Number(prev.baseAmount) === base && Number(prev.vatAmount) === vat && Number(prev.totalAmount) === total) return prev;
+      return { ...prev, baseAmount: base, vatAmount: vat, totalAmount: total };
+    });
+  }, [computableTotal, e.vatRate, lines.length]);
 
   function set(field: keyof Expense, value: any) { setE((prev: any) => ({ ...prev, [field]: value })); }
 
@@ -110,7 +136,7 @@ export function ExpenseEditor({ expense: initial, document: doc }: { expense: Ex
         const shortDest = archive.destination?.split(/[\\\/]+/).slice(-2).join("/");
         setMsg(`✓ Gasto verificado. Archivo movido a ${shortDest}.`);
         // Volver a la lista de gastos pendientes (mismo comportamiento que en Facturas).
-        setTimeout(() => router.push("/documents"), 1200);
+        setTimeout(() => router.push("/documents?tab=GASTO"), 1200);
       } else {
         // Si no se pudo mover, NO redirigimos: dejamos al usuario ver el motivo.
         setMsg(`✓ Gasto verificado, pero el PDF NO se movió a "revisado/". Motivo: ${archive?.reason ?? "desconocido"}`);
@@ -149,10 +175,23 @@ export function ExpenseEditor({ expense: initial, document: doc }: { expense: Ex
     const r = await fetch(`/api/expenses/${e.id}/reparse`, { method: "POST" });
     const j = await r.json();
     if (!r.ok) { alert(j?.error ?? "Error"); return; }
-    router.push(`/documents`);
+    // Al reparsear se crea un documento NUEVO (otro id). Volvemos a la pantalla
+    // de revisión de ese documento para ver el resultado, en vez de a la lista.
+    const newDocId = j?.data?.document?.id;
+    if (newDocId) {
+      router.push(`/documents/${newDocId}`);
+      router.refresh();
+    } else {
+      router.push(`/documents?tab=GASTO`);
+    }
   }
 
-  const cats = ["COFRADIA", "COMBUSTIBLE", "HIELO", "VIVERES", "TELEFONIA", "TRANSPORTE", "MANTENIMIENTO", "OTRO"];
+  // Lista completa de categorías — debe coincidir con el enum ExpenseCategory del schema.
+  const cats = [
+    "COFRADIA", "COMBUSTIBLE", "HIELO", "VIVERES", "TELEFONIA", "TRANSPORTE",
+    "MANTENIMIENTO", "HIELO_PRODUCIDO", "CAJAS", "PALETS", "APAREJOS",
+    "PAN", "AGUA", "CARNE", "MOVISTAR", "OTRO"
+  ];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
@@ -217,18 +256,45 @@ export function ExpenseEditor({ expense: initial, document: doc }: { expense: Ex
 
         <div className="card space-y-3">
           <h2 className="text-lg font-medium">Importes totales</h2>
+          {lines.length > 0 && (
+            <p className="text-xs text-slate-500 -mt-1">
+              Se calculan automáticamente a partir de las <b>líneas marcadas</b> ({fmtEur(computableTotal)}) y del <b>% IVA</b>.
+              Marca/desmarca líneas o cambia el % IVA y la base, el IVA y el total se actualizan solos.
+            </p>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field label="Base imponible">
-              <input className="input text-right tabular-nums" value={fmt(e.baseAmount)} onChange={ev => setBase(ev.target.value)} />
+              <input
+                className={`input text-right tabular-nums ${lines.length > 0 ? "bg-slate-100 text-slate-600" : ""}`}
+                value={fmt(e.baseAmount)}
+                onChange={ev => setBase(ev.target.value)}
+                readOnly={lines.length > 0}
+                title={lines.length > 0 ? "Calculado automáticamente desde las líneas marcadas" : undefined}
+              />
             </Field>
             <Field label="% IVA">
-              <input className="input text-right tabular-nums" value={fmt(e.vatRate)} onChange={ev => setRate(ev.target.value)} />
+              <select className="input text-right tabular-nums" value={ivaSelectValue} onChange={ev => setRate(ev.target.value)}>
+                <option value="21">21,00 %</option>
+                <option value="10">10,00 %</option>
+              </select>
             </Field>
             <Field label="IVA €">
-              <input className="input text-right tabular-nums" value={fmt(e.vatAmount)} onChange={ev => setVat(ev.target.value)} />
+              <input
+                className={`input text-right tabular-nums ${lines.length > 0 ? "bg-slate-100 text-slate-600" : ""}`}
+                value={fmt(e.vatAmount)}
+                onChange={ev => setVat(ev.target.value)}
+                readOnly={lines.length > 0}
+                title={lines.length > 0 ? "Calculado automáticamente (base × % IVA)" : undefined}
+              />
             </Field>
             <Field label="Total">
-              <input className="input text-right tabular-nums font-semibold" value={fmt(e.totalAmount)} onChange={ev => setTotal(ev.target.value)} />
+              <input
+                className={`input text-right tabular-nums font-semibold ${lines.length > 0 ? "bg-slate-100 text-slate-700" : ""}`}
+                value={fmt(e.totalAmount)}
+                onChange={ev => setTotal(ev.target.value)}
+                readOnly={lines.length > 0}
+                title={lines.length > 0 ? "Calculado automáticamente (base + IVA)" : undefined}
+              />
             </Field>
           </div>
         </div>
@@ -345,5 +411,5 @@ function fmt(v: any) {
 }
 function fmtEur(v: any) {
   const n = Number(v) || 0;
-  return n.toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as any);
 }

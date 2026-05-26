@@ -1,6 +1,9 @@
 import { ExpenseParserHandler, ExpenseParserContext, ParsedExpense } from "./base";
 import { santonaGastosParser } from "./santona-gastos";
 import { hondarribiaSanPedroGastosParser } from "./hondarribia-sanpedro-gastos";
+import { cofradiaAlbaranGastosParser } from "./cofradia-albaran-gastos";
+import { avilesGastosParser } from "./aviles-gastos";
+import { gijonGastosParser } from "./gijon-gastos";
 import { agrocomercialUranzuParser } from "./agrocomercial-uranzu";
 import { sumipescaParser } from "./sumipesca";
 import { genericGastoParser } from "./generic-gasto";
@@ -9,6 +12,9 @@ import { genericGastoParser } from "./generic-gasto";
 export const expenseRegistry: ExpenseParserHandler[] = [
   santonaGastosParser,
   hondarribiaSanPedroGastosParser,
+  cofradiaAlbaranGastosParser,   // "ALBARAN DE GASTOS Y SERVICIOS" (San Vicente, Santoña, …)
+  avilesGastosParser,
+  gijonGastosParser,
   agrocomercialUranzuParser,
   sumipescaParser,
   genericGastoParser   // fallback
@@ -31,6 +37,9 @@ export type { ParsedExpense, ExpenseParserContext, ExpenseParserHandler };
 export {
   santonaGastosParser,
   hondarribiaSanPedroGastosParser,
+  cofradiaAlbaranGastosParser,
+  avilesGastosParser,
+  gijonGastosParser,
   agrocomercialUranzuParser,
   sumipescaParser,
   genericGastoParser
