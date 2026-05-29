@@ -27,6 +27,9 @@ export default function DocumentsPage() {
 
   // Filtro por estado: "ALL" | "DRAFT" | "VERIFIED" | "FAILED" | "PARSED"
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  // Filtro por año (ej. "2025", "2026") y por puerto (id). "ALL" = sin filtrar.
+  const [yearFilter, setYearFilter] = useState<string>("ALL");
+  const [portFilter, setPortFilter] = useState<string>("ALL");
 
   // Formulario de "gasto manual" (entrada sin PDF)
   const [showManualForm, setShowManualForm] = useState(false);
@@ -91,14 +94,52 @@ export default function DocumentsPage() {
     }
   }
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { ALL: docs.length, DRAFT: 0, VERIFIED: 0, FAILED: 0, PARSED: 0, UPLOADED: 0, REJECTED: 0 };
-    for (const d of docs) if (c[d.status] !== undefined) c[d.status]++;
-    return c;
+  // Helpers para extraer año / puerto de un documento (capturas o gastos).
+  const docYear = (d: any): number | null => {
+    const iso = d.invoice?.issueDate ?? d.expense?.issueDate;
+    return iso ? new Date(iso).getFullYear() : null;
+  };
+  const docPortId = (d: any): string | null =>
+    d.invoice?.port?.id ?? d.expense?.port?.id ?? null;
+
+  // Años presentes en los documentos (para el desplegable, descendente).
+  const availableYears = useMemo(() => {
+    const ys = new Set<number>();
+    for (const d of docs) { const y = docYear(d); if (y) ys.add(y); }
+    return Array.from(ys).sort((a, b) => b - a);
   }, [docs]);
 
+  // Puertos presentes en los documentos (para el desplegable, alfabético).
+  const availablePorts = useMemo(() => {
+    const ps = new Map<string, string>();
+    for (const d of docs) {
+      const p = d.invoice?.port ?? d.expense?.port;
+      if (p?.id) ps.set(p.id, p.name);
+    }
+    return Array.from(ps.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [docs]);
+
+  // Aplicamos primero los filtros por año y puerto (los chips de estado deben
+  // contar SOLO lo que pasa esos filtros, para que los números sean coherentes
+  // con lo que el usuario va a ver).
+  const docsFiltered = useMemo(() => {
+    return docs.filter(d => {
+      if (yearFilter !== "ALL" && docYear(d) !== Number(yearFilter)) return false;
+      if (portFilter !== "ALL" && docPortId(d) !== portFilter) return false;
+      return true;
+    });
+  }, [docs, yearFilter, portFilter]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { ALL: docsFiltered.length, DRAFT: 0, VERIFIED: 0, FAILED: 0, PARSED: 0, UPLOADED: 0, REJECTED: 0 };
+    for (const d of docsFiltered) if (c[d.status] !== undefined) c[d.status]++;
+    return c;
+  }, [docsFiltered]);
+
   const sorted = useMemo(() => {
-    const arr = statusFilter === "ALL" ? [...docs] : docs.filter(d => d.status === statusFilter);
+    const arr = statusFilter === "ALL" ? [...docsFiltered] : docsFiltered.filter(d => d.status === statusFilter);
     arr.sort((a, b) => {
       const va = valueFor(a, sortKey);
       const vb = valueFor(b, sortKey);
@@ -110,7 +151,7 @@ export default function DocumentsPage() {
       return 0;
     });
     return arr;
-  }, [docs, sortKey, sortDir, statusFilter]);
+  }, [docsFiltered, sortKey, sortDir, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -168,6 +209,28 @@ export default function DocumentsPage() {
             <StatusChip label="Con errores" icon="!" count={counts.FAILED} active={statusFilter === "FAILED"}
               activeColor="bg-rose-100 text-rose-800 border-rose-300"
               onClick={() => setStatusFilter("FAILED")} />
+
+            {(availableYears.length > 0 || availablePorts.length > 0) && (
+              <div className="ml-2 flex flex-wrap items-center gap-2 border-l border-slate-300 pl-3">
+                <span className="text-xs uppercase tracking-wide text-slate-500">Año:</span>
+                <select className="border border-slate-300 rounded px-2 py-1 text-sm bg-white" value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+                  <option value="ALL">Todos</option>
+                  {availableYears.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                </select>
+                <span className="text-xs uppercase tracking-wide text-slate-500 ml-2">Puerto:</span>
+                <select className="border border-slate-300 rounded px-2 py-1 text-sm bg-white" value={portFilter} onChange={e => setPortFilter(e.target.value)}>
+                  <option value="ALL">Todos</option>
+                  {availablePorts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                {(yearFilter !== "ALL" || portFilter !== "ALL") && (
+                  <button
+                    className="text-xs text-slate-500 hover:text-rose-700 ml-1"
+                    onClick={() => { setYearFilter("ALL"); setPortFilter("ALL"); }}
+                    title="Quitar filtros de año y puerto"
+                  >✕ limpiar</button>
+                )}
+              </div>
+            )}
           </div>
 
           <GastosTab docs={sorted} refresh={refresh} />
@@ -194,6 +257,28 @@ export default function DocumentsPage() {
               <StatusChip label="Parseados" icon="·" count={counts.PARSED} active={statusFilter === "PARSED"}
                 activeColor="bg-sky-100 text-sky-800 border-sky-300"
                 onClick={() => setStatusFilter("PARSED")} />
+            )}
+
+            {(availableYears.length > 0 || availablePorts.length > 0) && (
+              <div className="ml-2 flex flex-wrap items-center gap-2 border-l border-slate-300 pl-3">
+                <span className="text-xs uppercase tracking-wide text-slate-500">Año:</span>
+                <select className="border border-slate-300 rounded px-2 py-1 text-sm bg-white" value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+                  <option value="ALL">Todos</option>
+                  {availableYears.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                </select>
+                <span className="text-xs uppercase tracking-wide text-slate-500 ml-2">Puerto:</span>
+                <select className="border border-slate-300 rounded px-2 py-1 text-sm bg-white" value={portFilter} onChange={e => setPortFilter(e.target.value)}>
+                  <option value="ALL">Todos</option>
+                  {availablePorts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                {(yearFilter !== "ALL" || portFilter !== "ALL") && (
+                  <button
+                    className="text-xs text-slate-500 hover:text-rose-700 ml-1"
+                    onClick={() => { setYearFilter("ALL"); setPortFilter("ALL"); }}
+                    title="Quitar filtros de año y puerto"
+                  >✕ limpiar</button>
+                )}
+              </div>
             )}
           </div>
 
