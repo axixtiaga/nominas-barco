@@ -17,8 +17,6 @@ const MONTH_NAMES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"
 export default function AnalisisComparadoPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [ports, setPorts] = useState<any[]>([]);
-  const [species, setSpecies] = useState<any[]>([]);
   const [portId, setPortId] = useState<string>("");
   const [speciesId, setSpeciesId] = useState<string>("");
   const [refDate, setRefDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
@@ -37,10 +35,22 @@ export default function AnalisisComparadoPage() {
   }, [refDate, portId, speciesId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Los desplegables de Puerto y Especie usan los datos del propio YoY, que
+  // solo trae los que TIENEN datos en los dos años comparados. Así no aparecen
+  // opciones vacías que no llevarían a ningún sitio.
+  const ports = data?.availablePorts ?? [];
+  const species = data?.availableSpecies ?? [];
+
+  // Si el puerto/especie seleccionado ya no aparece en los disponibles (porque
+  // ha cambiado la fecha de referencia y los años comparados son otros), lo
+  // limpiamos para que no quede un filtro "fantasma" invisible.
   useEffect(() => {
-    fetch("/api/ports").then(r => r.json()).then(j => setPorts(j.data ?? []));
-    fetch("/api/species").then(r => r.json()).then(j => setSpecies(j.data ?? []));
-  }, []);
+    if (!data) return;
+    if (portId && !ports.some((p: any) => p.id === portId)) setPortId("");
+    if (speciesId && !species.some((s: any) => s.id === speciesId)) setSpeciesId("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   if (loading || !data) {
     return <div className="p-8 text-slate-500">Calculando análisis comparado...</div>;

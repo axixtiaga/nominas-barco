@@ -78,6 +78,10 @@ export type YoyResult = {
   monthly: YoyMonthlyPoint[];
   bySpecies: YoyBreakdownRow[];
   byPort: YoyBreakdownRow[];
+  /** Puertos que tienen datos en los dos años comparados (para el desplegable). */
+  availablePorts: { id: string; name: string }[];
+  /** Especies que tienen datos en los dos años comparados (para el desplegable). */
+  availableSpecies: { id: string; commonName: string }[];
 };
 
 /** Devuelve el día del año (1-366) para una fecha. */
@@ -327,6 +331,43 @@ export async function getYoyAnalysis(f: YoyFilters = {}): Promise<YoyResult> {
     lastAvgPrice: round2(avg(a.lastA, a.lastK))
   })).sort((x, y) => y.thisAmount - x.thisAmount);
 
+  // ── 6) Puertos y especies que TIENEN datos en los dos años comparados ──
+  // Importante: estas listas NO aplican los filtros de portId/speciesId, para
+  // que los desplegables del UI sigan ofreciendo todas las opciones del periodo
+  // (no se autolimiten cuando ya hay un filtro elegido).
+  const availablePortsRows = await prisma.$queryRaw<Array<{
+    port_id: string | null; port_name: string | null;
+  }>>(Prisma.sql`
+    SELECT DISTINCT i."portId" AS port_id, p.name AS port_name
+    FROM "Invoice" i
+    LEFT JOIN "Port" p ON i."portId" = p.id
+    JOIN "InvoiceLine" il ON il."invoiceId" = i.id
+    WHERE i.status = 'VERIFIED'
+      AND il."lineDate" IS NOT NULL
+      AND EXTRACT(YEAR FROM il."lineDate") IN (${thisYear}, ${lastYear})
+      AND i."portId" IS NOT NULL
+    ORDER BY p.name
+  `);
+  const availablePorts = availablePortsRows
+    .filter(r => r.port_id && r.port_name)
+    .map(r => ({ id: r.port_id!, name: r.port_name! }));
+
+  const availableSpeciesRows = await prisma.$queryRaw<Array<{
+    species_id: string; common_name: string;
+  }>>(Prisma.sql`
+    SELECT DISTINCT il."speciesId" AS species_id, s."commonName" AS common_name
+    FROM "InvoiceLine" il
+    JOIN "Invoice" i ON il."invoiceId" = i.id
+    JOIN "Species" s ON il."speciesId" = s.id
+    WHERE i.status = 'VERIFIED'
+      AND il."lineDate" IS NOT NULL
+      AND EXTRACT(YEAR FROM il."lineDate") IN (${thisYear}, ${lastYear})
+      AND il."speciesId" IS NOT NULL
+    ORDER BY s."commonName"
+  `);
+  const availableSpecies = availableSpeciesRows
+    .map(r => ({ id: r.species_id, commonName: r.common_name }));
+
   return {
     meta: {
       thisYear,
@@ -352,6 +393,8 @@ export async function getYoyAnalysis(f: YoyFilters = {}): Promise<YoyResult> {
     daily,
     monthly,
     bySpecies,
-    byPort
+    byPort,
+    availablePorts,
+    availableSpecies
   };
 }
