@@ -16,18 +16,58 @@ const DIM_META: Record<string, { title: string; subtitle: string; primaryKey: st
 
 const COLORS = ["#2563eb", "#0891b2", "#16a34a", "#ea580c", "#db2777", "#9333ea", "#ca8a04", "#059669", "#dc2626", "#475569"];
 
-export function AnalysisClient({ dim, ports, species }: {
+export function AnalysisClient({ dim, ports, species, availableYears }: {
   dim: string;
   ports: { id: string; name: string }[];
   species: { id: string; commonName: string }[];
+  availableYears?: number[];
 }) {
   const meta = DIM_META[dim];
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+
+  // Selector de año (atajo que ajusta automáticamente "Desde" y "Hasta").
+  // Por defecto el año en curso; se persiste en sessionStorage para que al
+  // navegar entre pestañas del panel sigas viendo el mismo año.
+  const YEAR_KEY = `analysis:year:v1`;
+  const initialYear = (() => {
+    if (typeof window !== "undefined") {
+      try { const s = sessionStorage.getItem(YEAR_KEY); if (s) return s; } catch {}
+    }
+    return String(new Date().getFullYear());
+  })();
+  const [year, setYear] = useState<string>(initialYear);
+
+  // Las fechas se inicializan a partir del año seleccionado.
+  const initialFrom = initialYear === "ALL" ? "" : `${initialYear}-01-01`;
+  const initialTo   = initialYear === "ALL" ? "" : `${initialYear}-12-31`;
+  const [from, setFrom] = useState<string>(initialFrom);
+  const [to, setTo]     = useState<string>(initialTo);
   const [portId, setPortId] = useState<string>("");
   const [speciesId, setSpeciesId] = useState<string>("");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  /** Cambia el año seleccionado y ajusta Desde/Hasta automáticamente. */
+  function applyYear(y: string) {
+    setYear(y);
+    try { sessionStorage.setItem(YEAR_KEY, y); } catch {}
+    if (y === "ALL") {
+      setFrom("");
+      setTo("");
+    } else {
+      setFrom(`${y}-01-01`);
+      setTo(`${y}-12-31`);
+    }
+  }
+
+  // Si el año por defecto no tiene datos, saltamos al más reciente que sí.
+  useEffect(() => {
+    if (!availableYears?.length) return;
+    if (year === "ALL") return;
+    if (!availableYears.includes(Number(year))) {
+      applyYear(String(availableYears[0]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableYears]);
 
   async function load() {
     setLoading(true);
@@ -60,14 +100,23 @@ export function AnalysisClient({ dim, ports, species }: {
 
       {/* Filtros */}
       <div className="card">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <label className="block">
+            <span className="label">Año</span>
+            <select className="input" value={year} onChange={e => applyYear(e.target.value)}>
+              {(availableYears ?? []).map(y => (
+                <option key={y} value={String(y)}>{y}</option>
+              ))}
+              <option value="ALL">Todos los años</option>
+            </select>
+          </label>
           <label className="block">
             <span className="label">Desde</span>
-            <input className="input" type="date" value={from} onChange={e => setFrom(e.target.value)} />
+            <input className="input" type="date" value={from} onChange={e => { setFrom(e.target.value); setYear("ALL"); }} />
           </label>
           <label className="block">
             <span className="label">Hasta</span>
-            <input className="input" type="date" value={to} onChange={e => setTo(e.target.value)} />
+            <input className="input" type="date" value={to} onChange={e => { setTo(e.target.value); setYear("ALL"); }} />
           </label>
           <label className="block">
             <span className="label">Puerto</span>
