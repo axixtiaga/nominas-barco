@@ -31,6 +31,11 @@ export default function DocumentsPage() {
   const [yearFilter, setYearFilter] = useState<string>("ALL");
   const [portFilter, setPortFilter] = useState<string>("ALL");
 
+  // Validación masiva (verificar todos los pendientes con datos completos).
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkStage, setBulkStage] = useState<"idle" | "preview" | "running" | "done">("idle");
+  const [bulkResult, setBulkResult] = useState<any>(null);
+
   // Formulario de "gasto manual" (entrada sin PDF)
   const [showManualForm, setShowManualForm] = useState(false);
 
@@ -153,6 +158,58 @@ export default function DocumentsPage() {
     return arr;
   }, [docsFiltered, sortKey, sortDir, statusFilter]);
 
+  /* ──────── Validación masiva ──────── */
+  function bulkBody(dryRun: boolean) {
+    return {
+      kind: tab,
+      year: yearFilter !== "ALL" ? Number(yearFilter) : undefined,
+      portId: portFilter !== "ALL" ? portFilter : undefined,
+      dryRun
+    };
+  }
+  async function openBulkVerify() {
+    setBulkOpen(true);
+    setBulkStage("running");
+    setBulkResult(null);
+    try {
+      const r = await fetch("/api/documents/bulk-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bulkBody(true))
+      });
+      const j = await r.json();
+      if (!r.ok) { alert(j?.error ?? "Error en previsualización"); setBulkOpen(false); return; }
+      setBulkResult(j.data);
+      setBulkStage("preview");
+    } catch (e: any) {
+      alert(e?.message ?? "Error");
+      setBulkOpen(false);
+    }
+  }
+  async function applyBulkVerify() {
+    setBulkStage("running");
+    try {
+      const r = await fetch("/api/documents/bulk-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bulkBody(false))
+      });
+      const j = await r.json();
+      if (!r.ok) { alert(j?.error ?? "Error verificando"); setBulkStage("preview"); return; }
+      setBulkResult(j.data);
+      setBulkStage("done");
+      refresh();
+    } catch (e: any) {
+      alert(e?.message ?? "Error");
+      setBulkStage("preview");
+    }
+  }
+  function closeBulkVerify() {
+    setBulkOpen(false);
+    setBulkStage("idle");
+    setBulkResult(null);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -170,6 +227,15 @@ export default function DocumentsPage() {
               title="Añadir un gasto sin PDF (a mano)"
             >
               {showManualForm ? "Cerrar formulario" : "+ Gasto manual"}
+            </button>
+          )}
+          {counts.DRAFT > 0 && (
+            <button
+              className="btn-ghost border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              onClick={openBulkVerify}
+              title="Verifica de golpe todos los pendientes del filtro actual que tengan datos completos"
+            >
+              ✓ Verificar pendientes ({counts.DRAFT})
             </button>
           )}
           <button className="btn-ghost" onClick={scanNow} disabled={scanning}>{scanning ? "Escaneando..." : "Escanear carpetas ahora"}</button>
@@ -324,6 +390,120 @@ export default function DocumentsPage() {
             </table>
           </div>
         </>
+      )}
+
+      {/* Modal de validación masiva */}
+      {bulkOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col">
+            <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="font-semibold text-lg">Verificar pendientes en lote</h2>
+              <button className="text-slate-400 hover:text-slate-700 text-xl leading-none" onClick={closeBulkVerify} disabled={bulkStage === "running"}>×</button>
+            </div>
+
+            <div className="px-5 py-4 overflow-y-auto flex-1">
+              {bulkStage === "running" && (
+                <div className="text-center py-10 text-slate-600">
+                  <div className="text-2xl mb-2">⏳</div>
+                  <div>Procesando, espera unos segundos…</div>
+                </div>
+              )}
+
+              {bulkResult && bulkStage !== "running" && (
+                <div className="space-y-4 text-sm">
+                  <div className="text-slate-700">
+                    Filtros aplicados — <b>Tipo:</b> {tab === "CAPTURA" ? "Capturas" : "Gastos"}
+                    {yearFilter !== "ALL" && <> · <b>Año:</b> {yearFilter}</>}
+                    {portFilter !== "ALL" && <> · <b>Puerto:</b> {availablePorts.find(p => p.id === portFilter)?.name ?? portFilter}</>}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
+                      <div className="text-xs uppercase tracking-wide text-emerald-700">{bulkStage === "done" ? "Verificados" : "A verificar"}</div>
+                      <div className="text-2xl font-semibold text-emerald-800 mt-1">{bulkResult.verified.length}</div>
+                    </div>
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+                      <div className="text-xs uppercase tracking-wide text-amber-700">Se omiten</div>
+                      <div className="text-2xl font-semibold text-amber-800 mt-1">{bulkResult.skipped.length}</div>
+                    </div>
+                    <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-center">
+                      <div className="text-xs uppercase tracking-wide text-rose-700">Fallaron</div>
+                      <div className="text-2xl font-semibold text-rose-800 mt-1">{bulkResult.failed.length}</div>
+                    </div>
+                  </div>
+
+                  {bulkStage === "preview" && (
+                    <div className="text-slate-700 bg-blue-50 border border-blue-200 rounded p-3">
+                      Esta es una <b>previsualización</b>. Si pulsas <b>Confirmar y verificar</b> marcaré como verificados los {bulkResult.verified.length} de arriba.
+                      Los {bulkResult.skipped.length} omitidos se quedan como pendientes para que los revises tú.
+                    </div>
+                  )}
+
+                  {bulkStage === "done" && (
+                    <div className="text-slate-700 bg-emerald-50 border border-emerald-200 rounded p-3">
+                      ✓ Listo. {bulkResult.verified.length} documentos han pasado a verificado.
+                      {bulkResult.skipped.length > 0 && <> {bulkResult.skipped.length} se han quedado pendientes (mira abajo el motivo).</>}
+                    </div>
+                  )}
+
+                  {bulkResult.skipped.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-slate-700 mb-2">Omitidos y por qué:</h3>
+                      <div className="border border-slate-200 rounded max-h-64 overflow-y-auto">
+                        <table className="w-full text-xs">
+                          <tbody>
+                            {bulkResult.skipped.map((s: any) => (
+                              <tr key={s.id} className="border-b border-slate-100 last:border-0">
+                                <td className="px-3 py-2 font-mono align-top whitespace-nowrap">{s.filename}</td>
+                                <td className="px-3 py-2 text-amber-700 align-top">{s.reasons.join(" · ")}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {bulkResult.failed.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-rose-700 mb-2">Errores:</h3>
+                      <div className="border border-rose-200 rounded max-h-32 overflow-y-auto">
+                        <table className="w-full text-xs">
+                          <tbody>
+                            {bulkResult.failed.map((f: any) => (
+                              <tr key={f.id} className="border-b border-rose-100 last:border-0">
+                                <td className="px-3 py-2 font-mono align-top whitespace-nowrap">{f.filename}</td>
+                                <td className="px-3 py-2 text-rose-700 align-top">{f.error}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+              {bulkStage === "preview" && (
+                <>
+                  <button className="btn-ghost" onClick={closeBulkVerify}>Cancelar</button>
+                  <button
+                    className="btn-primary bg-emerald-600 hover:bg-emerald-700"
+                    onClick={applyBulkVerify}
+                    disabled={!bulkResult || bulkResult.verified.length === 0}
+                  >
+                    Confirmar y verificar ({bulkResult?.verified.length ?? 0})
+                  </button>
+                </>
+              )}
+              {bulkStage === "done" && (
+                <button className="btn-primary" onClick={closeBulkVerify}>Cerrar</button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
