@@ -21,9 +21,11 @@ export default function DocumentsPage() {
   const initialTab: Tab = (searchParams?.get("tab") === "GASTO") ? "GASTO" : "CAPTURA";
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  // Orden actual (por defecto, fecha de factura descendente)
-  const [sortKey, setSortKey] = useState<SortKey>("issueDate");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // Orden actual: por defecto, fecha de descarga ascendente (del más antiguo
+  // al más reciente). Esto facilita ir validando los pendientes en orden
+  // cronológico real de captura. Se reinicia al entrar a la página.
+  const [sortKey, setSortKey] = useState<SortKey>("downloadDate");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   // Filtro por estado: "ALL" | "DRAFT" | "VERIFIED" | "FAILED" | "PARSED"
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
