@@ -22,6 +22,7 @@
     "seed:sanvicente": "tsx scripts/seed-sanvicente.ts",
     "seed:aviles": "tsx scripts/seed-aviles.ts",
     "check:santona": "tsx scripts/check-santona.ts",
+    "check:docs": "tsx scripts/check-docs.ts",
     "classify": "tsx scripts/classify-pdf.ts",
     "test": "vitest run"
   },

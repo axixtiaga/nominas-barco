@@ -13,7 +13,10 @@ export const documentsRepo = {
         expense: { include: { supplier: true, port: true } }
       },
       orderBy: { createdAt: "desc" },
-      take: params.take ?? 50,
+      // Subimos el tope a 500 — antes era 50 y se cortaba al importar lotes
+      // grandes de PDFs (ocultando los más antiguos). Con 500 cubrimos varios
+      // meses sobradamente; cuando crezca, añadiremos paginación de verdad.
+      take: params.take ?? 500,
       skip: params.skip ?? 0
     });
   },
