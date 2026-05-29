@@ -37,6 +37,7 @@ function buildNavFull(role: string | undefined): NavEntry[] {
   return [
     { href: "/", label: "Inicio" },
     { href: "/panel", label: "Panel de control" },
+    { href: "/analisis-comparado", label: "Análisis comparado" },
     { href: "/documents", label: "Documentos" },
     { label: "Nóminas", children: NOMINAS_CHILDREN },
     { href: "/reports", label: "Reportes" },
