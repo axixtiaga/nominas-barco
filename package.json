@@ -19,6 +19,7 @@
     "seed:port-taxes": "tsx scripts/seed-port-tax-rates.ts",
     "seed:sailors": "tsx scripts/seed-sailors.ts",
     "seed:gijon": "tsx scripts/seed-gijon.ts",
+    "seed:gijon-factura": "tsx scripts/seed-gijon-factura.ts",
     "seed:sanvicente": "tsx scripts/seed-sanvicente.ts",
     "seed:aviles": "tsx scripts/seed-aviles.ts",
     "check:santona": "tsx scripts/check-santona.ts",
