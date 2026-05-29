@@ -28,8 +28,12 @@ export default function DocumentsPage() {
   // Filtro por estado: "ALL" | "DRAFT" | "VERIFIED" | "FAILED" | "PARSED"
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   // Filtro por año (ej. "2025", "2026") y por puerto (id). "ALL" = sin filtrar.
+  // Se persisten en sessionStorage para que al volver del editor de un documento
+  // (Guardar/Verificar) la pantalla quede como antes, con los filtros aplicados.
+  const FILTERS_KEY = "documents:filters:v1";
   const [yearFilter, setYearFilter] = useState<string>("ALL");
   const [portFilter, setPortFilter] = useState<string>("ALL");
+  const [filtersRestored, setFiltersRestored] = useState(false);
 
   // Validación masiva (verificar todos los pendientes con datos completos).
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -51,6 +55,30 @@ export default function DocumentsPage() {
     const t = setInterval(refresh, 5000);
     return () => clearInterval(t);
   }, [tab]);
+
+  // Restaurar filtros guardados al cargar (una vez).
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(FILTERS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.status) setStatusFilter(String(saved.status));
+        if (saved?.year)   setYearFilter(String(saved.year));
+        if (saved?.port)   setPortFilter(String(saved.port));
+      }
+    } catch { /* ignorar */ }
+    setFiltersRestored(true);
+  }, []);
+
+  // Guardar filtros cuando cambien (solo después de haber restaurado).
+  useEffect(() => {
+    if (!filtersRestored) return;
+    try {
+      sessionStorage.setItem(FILTERS_KEY, JSON.stringify({
+        status: statusFilter, year: yearFilter, port: portFilter
+      }));
+    } catch { /* ignorar */ }
+  }, [statusFilter, yearFilter, portFilter, filtersRestored]);
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
@@ -125,6 +153,19 @@ export default function DocumentsPage() {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [docs]);
+
+  // Si el año/puerto guardado ya no aparece en los datos actuales (por ejemplo
+  // tras cambiar de pestaña), lo limpiamos automáticamente para no dejar un
+  // filtro "fantasma" invisible.
+  useEffect(() => {
+    if (!filtersRestored || docs.length === 0) return;
+    if (yearFilter !== "ALL" && !availableYears.includes(Number(yearFilter))) {
+      setYearFilter("ALL");
+    }
+    if (portFilter !== "ALL" && !availablePorts.some(p => p.id === portFilter)) {
+      setPortFilter("ALL");
+    }
+  }, [docs.length, availableYears, availablePorts, yearFilter, portFilter, filtersRestored]);
 
   // Aplicamos primero los filtros por año y puerto (los chips de estado deben
   // contar SOLO lo que pasa esos filtros, para que los números sean coherentes
