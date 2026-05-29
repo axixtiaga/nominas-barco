@@ -14,17 +14,54 @@ export default function PanelPage() {
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Selector de año. "ALL" = todos los años (acumulado histórico).
+  // Por defecto el año actual; se persiste en sessionStorage para que al volver
+  // al panel después de revisar un documento te encuentres el mismo año.
+  const YEAR_KEY = "panel:year:v1";
+  const [year, setYear] = useState<string>(() => String(new Date().getFullYear()));
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(YEAR_KEY);
+      if (saved) setYear(saved);
+    } catch {}
+  }, []);
+
+  // Si tras cargar los datos vemos que el año seleccionado no tiene facturas
+  // verificadas (p. ej. el año en curso pero aún sin importar nada), saltamos
+  // automáticamente al año más reciente que sí tenga datos.
+  useEffect(() => {
+    if (!data?.availableYears?.length) return;
+    if (year === "ALL") return;
+    const yNum = Number(year);
+    if (!data.availableYears.includes(yNum)) {
+      setYear(String(data.availableYears[0]));
+    }
+  }, [data, year]);
+  useEffect(() => {
+    try { sessionStorage.setItem(YEAR_KEY, year); } catch {}
+  }, [year]);
+
+  // Construye los parámetros de fecha (from/to) según el año seleccionado.
+  // "ALL" → sin filtro de fechas. Año Y → 1 de enero a 31 de diciembre.
+  function yearParams(): string {
+    if (year === "ALL") return "";
+    const y = Number(year);
+    if (!Number.isFinite(y)) return "";
+    return `&from=${y}-01-01&to=${y}-12-31`;
+  }
+
   // Forzamos no-cache + un parámetro `?t=timestamp` para que ni el navegador
   // ni ningún proxy puedan servirnos una respuesta vieja.
   const refresh = useCallback(async () => {
     setRefreshing(true);
     const t = Date.now();
+    const qs = yearParams();
     const opts: RequestInit = { cache: "no-store", headers: { "Cache-Control": "no-cache" } };
     try {
       const [d, dd, ww] = await Promise.all([
-        fetch(`/api/dashboard?_t=${t}`, opts).then(r => r.json()),
-        fetch(`/api/analysis/daily?_t=${t}`, opts).then(r => r.json()),
-        fetch(`/api/analysis/weekly?_t=${t}`, opts).then(r => r.json())
+        fetch(`/api/dashboard?_t=${t}${qs}`, opts).then(r => r.json()),
+        fetch(`/api/analysis/daily?_t=${t}${qs}`, opts).then(r => r.json()),
+        fetch(`/api/analysis/weekly?_t=${t}${qs}`, opts).then(r => r.json())
       ]);
       setData(d.data);
       setDaily(dd.data?.breakdown ?? []);
@@ -33,7 +70,8 @@ export default function PanelPage() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year]);
 
   useEffect(() => {
     refresh();
@@ -51,12 +89,14 @@ export default function PanelPage() {
 
   if (!data) return <div>Cargando panel...</div>;
   const kpi = data.kpis;
+  const years: number[] = data.availableYears ?? [];
+  const yearLabel = year === "ALL" ? "Todos los años" : `Año ${year}`;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Panel de control</h1>
+          <h1 className="text-2xl font-semibold">Panel de control · <span className="text-blue-700">{yearLabel}</span></h1>
           <p className="text-xs text-slate-500 mt-1">
             Solo incluye facturas <b>verificadas</b>. Las pendientes aparecen en
             <a href="/documents" className="text-blue-600 hover:underline"> Documentos</a>.
@@ -68,13 +108,25 @@ export default function PanelPage() {
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={refreshing}
-          className="btn-ghost shrink-0"
-          title="Volver a leer los datos de la base"
-        >{refreshing ? "Cargando..." : "🔄 Actualizar"}</button>
+        <div className="flex items-center gap-2 shrink-0">
+          <label className="text-xs uppercase tracking-wide text-slate-500">Año:</label>
+          <select
+            className="border border-slate-300 rounded px-2 py-1 text-sm bg-white"
+            value={year}
+            onChange={e => setYear(e.target.value)}
+            title="Filtrar todo el panel por año"
+          >
+            {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
+            <option value="ALL">Todos los años</option>
+          </select>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            className="btn-ghost"
+            title="Volver a leer los datos de la base"
+          >{refreshing ? "Cargando..." : "🔄 Actualizar"}</button>
+        </div>
       </div>
 
       {/* Pestañas: Ingresos / Gastos / Nóminas */}

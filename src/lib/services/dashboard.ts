@@ -41,9 +41,17 @@ export async function getDashboard(params: { from?: Date; to?: Date } = {}) {
     })
   ]);
 
-  const [ports, boats, suppliers, species] = await Promise.all([
-    prisma.port.findMany(), prisma.boat.findMany(), prisma.supplier.findMany(), prisma.species.findMany()
+  const [ports, boats, suppliers, species, yearsRows] = await Promise.all([
+    prisma.port.findMany(), prisma.boat.findMany(), prisma.supplier.findMany(), prisma.species.findMany(),
+    // Años con datos (para el selector del panel). Sin filtros de fecha.
+    prisma.$queryRawUnsafe<any[]>(
+      `SELECT DISTINCT EXTRACT(YEAR FROM "issueDate")::int AS year
+         FROM "Invoice"
+        WHERE "issueDate" IS NOT NULL AND status = 'VERIFIED'
+        ORDER BY year DESC`
+    )
   ]);
+  const availableYears: number[] = yearsRows.map(r => Number(r.year));
   const name = <T extends { id: string; name?: string; commonName?: string }>(arr: T[], id: string | null) =>
     arr.find(x => x.id === id)?.["name" as keyof T] as string | undefined;
 
@@ -72,6 +80,7 @@ export async function getDashboard(params: { from?: Date; to?: Date } = {}) {
       };
     }),
     byRawSpecies: byRaw.map(r => ({ rawName: r.rawSpeciesName, kilos: Number(r._sum.kilos ?? 0), amount: Number(r._sum.amount ?? 0) })),
-    byMonth
+    byMonth,
+    availableYears
   };
 }
