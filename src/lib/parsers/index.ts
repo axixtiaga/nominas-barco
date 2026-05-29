@@ -7,6 +7,7 @@ import { getariaElkanoParser } from "./getaria-elkano";
 import { hondarribiaSanPedroParser } from "./hondarribia-sanpedro";
 import { bermeoSanPedroParser } from "./bermeo-sanpedro";
 import { gijonLonjaParser } from "./gijon-lonja";
+import { gijonFacturaParser } from "./gijon-factura";
 import { sanvicenteCofradiaParser } from "./sanvicente-cofradia";
 import { avilesRulaParser } from "./aviles-rula";
 
@@ -19,6 +20,7 @@ export const registry: Record<string, ParserHandler> = {
   [hondarribiaSanPedroParser.key]: hondarribiaSanPedroParser,
   [bermeoSanPedroParser.key]: bermeoSanPedroParser,
   [gijonLonjaParser.key]: gijonLonjaParser,
+  [gijonFacturaParser.key]: gijonFacturaParser,
   [sanvicenteCofradiaParser.key]: sanvicenteCofradiaParser,
   [avilesRulaParser.key]: avilesRulaParser,
   [genericParser.key]: genericParser
@@ -33,6 +35,7 @@ export {
   hondarribiaSanPedroParser,
   bermeoSanPedroParser,
   gijonLonjaParser,
+  gijonFacturaParser,
   sanvicenteCofradiaParser,
   avilesRulaParser
 };

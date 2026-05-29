@@ -40,9 +40,14 @@ import { consolidateLines } from "./_basque-shared";
  */
 export const gijonLonjaParser: ParserHandler = {
   key: "gijon-lonja",
-  label: "Gijón · Lonja Gijón Musel",
+  label: "Gijón · Lonja Gijón Musel (lista de compras)",
   matches(ctx) {
     const t = ctx.rawText.toUpperCase();
+    // Este parser es SOLO para el formato "LISTA DE COMPRAS" de Gijón. Los
+    // otros formatos del mismo emisor (FACTURA-FP con "Importe Subasta" o
+    // factura de servicios con "Total Suministros") tienen sus propios parsers.
+    if (/IMPORTE\s+SUBASTA/i.test(ctx.rawText)) return false;
+    if (/TOTAL\s+SUMINISTROS/i.test(ctx.rawText)) return false;
     const sigs = (ctx.formatConfig?.signatures as string[] | undefined) ?? [
       "LONJA GIJÓN", "LONJA GIJON", "EL MUSEL", "A33831934", "RENDIELLO"
     ];
