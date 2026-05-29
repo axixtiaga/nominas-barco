@@ -19,29 +19,43 @@ export async function GET(req: NextRequest, { params }: { params: { kind: string
       speciesId: q.get("speciesId") ?? undefined
     });
 
-    // Aplanamos a filas por línea
-    const rows = invoices.flatMap(inv => (inv.lines.length ? inv.lines : [null] as any[]).map((l: any) => ({
-      factura: inv.invoiceNumber ?? "",
-      fecha: inv.issueDate ? inv.issueDate.toISOString().slice(0, 10) : "",
-      puerto: inv.port?.name ?? "",
-      barco: inv.boat?.name ?? "",
-      proveedor: inv.supplier?.name ?? "",
-      especie_original: l?.rawSpeciesName ?? "",
-      especie_normalizada: l?.species?.commonName ?? "",
-      descripcion: l?.description ?? "",
-      kilos: l ? Number(l.kilos) : 0,
-      precio_kg: l ? Number(l.pricePerKg) : 0,
-      importe: l ? Number(l.amount) : 0,
-      iva_pct: l ? Number(l.vatRate) : 0,
-      iva_eur: l ? Number(l.vatAmount) : 0,
-      subtotal: Number(inv.subtotal),
-      impuestos: Number(inv.taxes),
-      tasas: Number(inv.fees),
-      otros: Number(inv.other),
-      total: Number(inv.total),
-      moneda: inv.currency,
-      estado: inv.status
-    })));
+    // Nombres de mes en castellano (para que aparezcan bien en Excel sin depender del locale del sistema).
+    const MES_NOMBRES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    // Aplanamos a filas por línea. Las columnas año / mes / mes_nombre se derivan
+    // de la fecha de la LÍNEA cuando existe (más exacto si una factura agrupa
+    // capturas de varios días), y si no, de la fecha de la factura.
+    const rows = invoices.flatMap(inv => (inv.lines.length ? inv.lines : [null] as any[]).map((l: any) => {
+      const refDate: Date | null = (l?.lineDate ?? inv.issueDate) ?? null;
+      const año = refDate ? refDate.getFullYear() : "";
+      const mes = refDate ? refDate.getMonth() + 1 : "";
+      const mes_nombre = refDate ? MES_NOMBRES[refDate.getMonth()] : "";
+      return {
+        factura: inv.invoiceNumber ?? "",
+        fecha: inv.issueDate ? inv.issueDate.toISOString().slice(0, 10) : "",
+        año,
+        mes,
+        mes_nombre,
+        puerto: inv.port?.name ?? "",
+        barco: inv.boat?.name ?? "",
+        proveedor: inv.supplier?.name ?? "",
+        especie_original: l?.rawSpeciesName ?? "",
+        especie_normalizada: l?.species?.commonName ?? "",
+        descripcion: l?.description ?? "",
+        kilos: l ? Number(l.kilos) : 0,
+        precio_kg: l ? Number(l.pricePerKg) : 0,
+        importe: l ? Number(l.amount) : 0,
+        iva_pct: l ? Number(l.vatRate) : 0,
+        iva_eur: l ? Number(l.vatAmount) : 0,
+        subtotal: Number(inv.subtotal),
+        impuestos: Number(inv.taxes),
+        tasas: Number(inv.fees),
+        otros: Number(inv.other),
+        total: Number(inv.total),
+        moneda: inv.currency,
+        estado: inv.status
+      };
+    }));
 
     switch (params.kind) {
       case "csv": {

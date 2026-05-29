@@ -35,9 +35,11 @@ const fmtStr = (v: any) => (v == null ? "" : String(v));
 // quepa en una sola pagina de ancho A4 horizontal sin que se rompan las celdas.
 const COLUMNS: ColDef[] = [
   { key: "fecha",               label: "Fecha",       width: 55,  align: "left",   fmt: fmtStr },
+  { key: "año",                 label: "Año",         width: 35,  align: "right",  fmt: fmtStr },
+  { key: "mes",                 label: "Mes",         width: 30,  align: "right",  fmt: fmtStr },
   { key: "factura",             label: "Factura",     width: 60,  align: "left",   fmt: fmtStr },
   { key: "puerto",              label: "Puerto",      width: 55,  align: "left",   fmt: fmtStr },
-  { key: "proveedor",           label: "Proveedor",   width: 165, align: "left",   fmt: fmtStr },
+  { key: "proveedor",           label: "Proveedor",   width: 100, align: "left",   fmt: fmtStr },
   { key: "especie_normalizada", label: "Especie",     width: 70,  align: "left",   fmt: fmtStr },
   { key: "kilos",               label: "Kilos",       width: 55,  align: "right",  fmt: fmtKg },
   { key: "precio_kg",           label: "€/Kg",        width: 45,  align: "right",  fmt: (v) => fmtNumES(v, 3) },
