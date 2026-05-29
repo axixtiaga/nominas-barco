@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-type SortKey = "issueDate" | "createdAt" | "portName" | "invoiceNumber" | "total" | "status";
+type SortKey = "issueDate" | "downloadDate" | "createdAt" | "portName" | "invoiceNumber" | "total" | "status";
 type SortDir = "asc" | "desc";
 type Tab = "CAPTURA" | "GASTO";
 
@@ -119,12 +119,33 @@ export default function DocumentsPage() {
   function valueFor(d: any, k: SortKey): any {
     switch (k) {
       case "issueDate":     return d.invoice?.issueDate ? new Date(d.invoice.issueDate).getTime() : null;
+      case "downloadDate":  return downloadDateMs(d);
       case "createdAt":     return new Date(d.createdAt).getTime();
       case "portName":      return d.invoice?.port?.name?.toLowerCase() ?? "";
       case "invoiceNumber": return d.invoice?.invoiceNumber ?? "";
       case "total":         return d.invoice ? Number(d.invoice.total) : 0;
       case "status":        return d.status ?? "";
     }
+  }
+
+  /** Devuelve el timestamp más temprano entre las lineDate del documento, o null. */
+  function downloadDateMs(d: any): number | null {
+    const lines = d.invoice?.lines ?? d.expense?.lines ?? [];
+    const ts = lines.map((l: any) => l.lineDate ? new Date(l.lineDate).getTime() : null).filter((x: any) => x != null);
+    if (!ts.length) return null;
+    return Math.min(...ts);
+  }
+
+  /** Renderiza la fecha de descarga: una fecha si todas las líneas son del mismo día,
+   *  un rango "DD/MM/YYYY – DD/MM/YYYY" si son días distintos, o "—" si no hay. */
+  function renderDownloadDate(d: any): string {
+    const lines = d.invoice?.lines ?? d.expense?.lines ?? [];
+    const ts = lines.map((l: any) => l.lineDate ? new Date(l.lineDate).getTime() : null).filter((x: any) => x != null) as number[];
+    if (!ts.length) return "—";
+    const min = Math.min(...ts), max = Math.max(...ts);
+    const fmt = (n: number) => new Date(n).toLocaleDateString("es-ES");
+    if (min === max) return fmt(min);
+    return `${fmt(min)} – ${fmt(max)}`;
   }
 
   // Helpers para extraer año / puerto de un documento (capturas o gastos).
@@ -394,6 +415,7 @@ export default function DocumentsPage() {
               <thead>
                 <tr>
                   <Th k="issueDate"     label="Fecha factura"  sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                  <Th k="downloadDate"  label="F. descarga"    sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                   <Th k="createdAt"     label="Importado"      sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                   <th>Archivo</th>
                   <th>Formato</th>
@@ -408,6 +430,7 @@ export default function DocumentsPage() {
                 {sorted.map(d => (
                   <tr key={d.id}>
                     <td className="font-medium">{d.invoice?.issueDate ? new Date(d.invoice.issueDate).toLocaleDateString("es-ES") : "—"}</td>
+                    <td className="whitespace-nowrap">{renderDownloadDate(d)}</td>
                     <td className="text-xs text-slate-500">{new Date(d.createdAt).toLocaleDateString("es-ES")}</td>
                     <td className="font-mono text-xs">{d.filename}</td>
                     <td>{d.format?.name ?? "—"}</td>
@@ -426,7 +449,7 @@ export default function DocumentsPage() {
                     </td>
                   </tr>
                 ))}
-                {!sorted.length && <tr><td colSpan={9} className="text-center py-6 text-slate-500">Sin documentos. Importa un PDF o activa el watcher.</td></tr>}
+                {!sorted.length && <tr><td colSpan={10} className="text-center py-6 text-slate-500">Sin documentos. Importa un PDF o activa el watcher.</td></tr>}
               </tbody>
             </table>
           </div>

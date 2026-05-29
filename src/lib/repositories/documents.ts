@@ -9,8 +9,20 @@ export const documentsRepo = {
       where,
       include: {
         format: true,
-        invoice: { include: { port: true, boat: true, supplier: true } },
-        expense: { include: { supplier: true, port: true } }
+        invoice: {
+          include: {
+            port: true, boat: true, supplier: true,
+            // Solo las fechas de cada línea — para mostrar la "Fecha de descarga"
+            // (día real de la captura) en la lista. Ligero: 1 dato por línea.
+            lines: { select: { lineDate: true } }
+          }
+        },
+        expense: {
+          include: {
+            supplier: true, port: true,
+            lines: { select: { lineDate: true } }
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
       // Subimos el tope a 500 — antes era 50 y se cortaba al importar lotes
